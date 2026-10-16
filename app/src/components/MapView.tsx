@@ -1,9 +1,16 @@
 'use client'
 
 import { useRef, useCallback, useState, useEffect } from 'react'
+import * as maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import Map, { Marker, NavigationControl, type MapRef, type MapMouseEvent } from 'react-map-gl/maplibre'
 import { MapPin, Plus } from 'lucide-react'
 import type { Place } from '@/lib/types'
+
+// Explicitly set worker URL for MapLibre GL v6+
+if (typeof window !== 'undefined') {
+  maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs')
+}
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
@@ -33,6 +40,10 @@ export default function MapView({
   const mapRef = useRef<MapRef>(null)
   const [cursor, setCursor] = useState<string>('grab')
 
+  useEffect(() => {
+    maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs')
+  }, [])
+
   const handleClick = useCallback(
     (e: MapMouseEvent) => {
       // Only trigger if not clicking a marker
@@ -58,6 +69,7 @@ export default function MapView({
   return (
     <Map
       ref={mapRef}
+      mapLib={maplibregl}
       initialViewState={{
         longitude: 12.4922,
         latitude: 41.8902,
