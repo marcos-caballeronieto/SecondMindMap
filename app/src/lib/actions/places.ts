@@ -1,20 +1,30 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { PlaceInsert, PlaceUpdate } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
 
 export async function getPlaces() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('places')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data
+  if (!isSupabaseConfigured()) {
+    return []
+  }
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('places')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) return []
+    return data ?? []
+  } catch {
+    return []
+  }
 }
 
 export async function createPlace(place: PlaceInsert) {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase no está configurado en .env.local')
+  }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -30,6 +40,9 @@ export async function createPlace(place: PlaceInsert) {
 }
 
 export async function updatePlace(id: string, place: PlaceUpdate) {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase no está configurado en .env.local')
+  }
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('places')
@@ -43,8 +56,15 @@ export async function updatePlace(id: string, place: PlaceUpdate) {
 }
 
 export async function deletePlace(id: string) {
-  const supabase = await createClient()
-  const { error } = await supabase.from('places').delete().eq('id', id)
-  if (error) throw error
-  revalidatePath('/')
+  if (!isSupabaseConfigured()) {
+    return
+  }
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from('places').delete().eq('id', id)
+    if (error) throw error
+    revalidatePath('/')
+  } catch {
+    // Ignore error if unconfigured
+  }
 }

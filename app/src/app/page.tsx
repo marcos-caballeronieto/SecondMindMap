@@ -1,11 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
-  Globe, Plus, Search, Download, Upload, LogOut, X, MapPin, List, ChevronUp
+  Globe, Plus, Search, Download, LogOut, X, MapPin, List, ChevronUp, Sparkles
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { createPlace, updatePlace, deletePlace } from '@/lib/actions/places'
 import type { Place, PlaceInsert } from '@/lib/types'
 import PlaceDetail from '@/components/PlaceDetail'
@@ -19,30 +19,121 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 type PanelMode = 'closed' | 'list' | 'detail' | 'form'
 type SheetHeight = 'peek' | 'half' | 'full'
 
+const INITIAL_DEMO_PLACES: Place[] = [
+  {
+    id: 'demo-1',
+    user_id: 'demo-user',
+    name: 'Coliseo Romano',
+    latitude: 41.8902,
+    longitude: 12.4922,
+    is_visited: true,
+    price_level: '$$',
+    notes_markdown:
+      '## Historia y Arquitectura\n\nEl **Anfiteatro Flavio**, conocido universalmente como el Coliseo, fue inaugurado en el año 80 d.C. bajo el mandato del emperador Tito.\n\n* **Capacidad estimada:** Más de 60.000 espectadores.\n* **Materiales:** Travertino, toba y hormigón romano.\n\n> Consejo viajero: Imprescindible reservar con antelación la entrada con acceso a los subterráneos (hipogeo).',
+    metadata: {},
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'demo-2',
+    user_id: 'demo-user',
+    name: 'Panteón de Agripa',
+    latitude: 41.8986,
+    longitude: 12.4769,
+    is_visited: false,
+    price_level: 'free',
+    notes_markdown:
+      '## La Cúpula y el Óculo\n\nEl edificio mejor conservado de la Antigua Roma.\n\n* Su cúpula de hormigón en masa no armado sigue siendo la mayor del mundo (43,3 m de diámetro).\n* El óculo de 9 metros en el cenit es la única fuente de luz natural.\n* Tumba de personalidades históricas como el pintor **Rafael**.',
+    metadata: {},
+    created_at: new Date(Date.now() - 43200000).toISOString(),
+  },
+  {
+    id: 'demo-3',
+    user_id: 'demo-user',
+    name: 'Basílica de la Sagrada Familia',
+    latitude: 41.4036,
+    longitude: 2.1744,
+    is_visited: true,
+    price_level: '$$$',
+    notes_markdown:
+      '## Obra Cumbre del Modernismo Catalán\n\nDiseñada por Antoni Gaudí, su construcción comenzó en 1882 y continúa activa.\n\n* **Simbolismo lumínico:** Fachada del Nacimiento (amanecer, azules/verdes) vs Fachada de la Pasión (ocaso, rojos/ámbares).\n* **Columnas arborescentes:** El interior emula la estructura de un bosque de piedra.',
+    metadata: {},
+    created_at: new Date().toISOString(),
+  },
+]
+
 export default function GeoMindApp() {
   const supabase = createClient()
+  const isConfigured = isSupabaseConfigured()
 
   // ─── Auth ────────────────────────────────────────────────────────────────
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
+  const [isDemoUser, setIsDemoUser] = useState<boolean>(false)
   const [authLoading, setAuthLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
+    // Check local demo session first
+    const demoStored = typeof window !== 'undefined' ? localStorage.getItem('geomind_is_demo') : null
+    if (demoStored === 'true') {
+      setIsDemoUser(true)
+      setUser({ id: 'demo-user', email: 'invitado@geomind.local' })
       setAuthLoading(false)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      return
+    }
+
+    if (!isConfigured) {
+      setAuthLoading(false)
+      return
+    }
+
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        setUser(data.user)
+        setAuthLoading(false)
+      })
+      .catch(() => {
+        setAuthLoading(false)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [isConfigured, supabase])
 
   // ─── Places State ────────────────────────────────────────────────────────
   const [places, setPlaces] = useState<Place[]>([])
   const [loadingPlaces, setLoadingPlaces] = useState(false)
 
+  const saveLocalPlaces = (newPlaces: Place[]) => {
+    setPlaces(newPlaces)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('geomind_places', JSON.stringify(newPlaces))
+    }
+  }
+
   const fetchPlaces = useCallback(async () => {
     if (!user) return
+
+    if (isDemoUser || !isConfigured) {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('geomind_places')
+        if (cached) {
+          try {
+            setPlaces(JSON.parse(cached))
+            return
+          } catch {
+            // fallback
+          }
+        }
+        setPlaces(INITIAL_DEMO_PLACES)
+        localStorage.setItem('geomind_places', JSON.stringify(INITIAL_DEMO_PLACES))
+      }
+      return
+    }
+
     setLoadingPlaces(true)
     try {
       const { data } = await supabase
@@ -50,10 +141,12 @@ export default function GeoMindApp() {
         .select('*')
         .order('created_at', { ascending: false })
       setPlaces(data ?? [])
+    } catch {
+      // Ignore network errors
     } finally {
       setLoadingPlaces(false)
     }
-  }, [user, supabase])
+  }, [user, isDemoUser, isConfigured, supabase])
 
   useEffect(() => {
     fetchPlaces()
@@ -74,7 +167,7 @@ export default function GeoMindApp() {
     (p) =>
       searchQuery === '' ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.notes_markdown.toLowerCase().includes(searchQuery.toLowerCase())
+      (p.notes_markdown && p.notes_markdown.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   // ─── Map interactions ────────────────────────────────────────────────────
@@ -96,6 +189,22 @@ export default function GeoMindApp() {
 
   // ─── CRUD ─────────────────────────────────────────────────────────────────
   const handleCreatePlace = async (data: PlaceInsert) => {
+    if (isDemoUser || !isConfigured) {
+      const newPlace: Place = {
+        ...data,
+        id: 'place-' + Date.now(),
+        user_id: user?.id ?? 'demo-user',
+        created_at: new Date().toISOString(),
+      }
+      const updated = [newPlace, ...places]
+      saveLocalPlaces(updated)
+      setPendingMarker(null)
+      setSelectedPlace(newPlace)
+      setPanelMode('detail')
+      setSheetHeight('half')
+      return
+    }
+
     const created = await createPlace(data)
     setPlaces((prev) => [created, ...prev])
     setPendingMarker(null)
@@ -106,6 +215,21 @@ export default function GeoMindApp() {
 
   const handleUpdatePlace = async (data: PlaceInsert) => {
     if (!editingPlace) return
+
+    if (isDemoUser || !isConfigured) {
+      const updatedPlace: Place = {
+        ...editingPlace,
+        ...data,
+      }
+      const updated = places.map((p) => (p.id === updatedPlace.id ? updatedPlace : p))
+      saveLocalPlaces(updated)
+      setSelectedPlace(updatedPlace)
+      setEditingPlace(null)
+      setPanelMode('detail')
+      setSheetHeight('half')
+      return
+    }
+
     const updated = await updatePlace(editingPlace.id, data)
     setPlaces((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     setSelectedPlace(updated)
@@ -115,6 +239,15 @@ export default function GeoMindApp() {
   }
 
   const handleDeletePlace = async (id: string) => {
+    if (isDemoUser || !isConfigured) {
+      const updated = places.filter((p) => p.id !== id)
+      saveLocalPlaces(updated)
+      setSelectedPlace(null)
+      setPanelMode('list')
+      setSheetHeight('half')
+      return
+    }
+
     await deletePlace(id)
     setPlaces((prev) => prev.filter((p) => p.id !== id))
     setSelectedPlace(null)
@@ -123,6 +256,15 @@ export default function GeoMindApp() {
   }
 
   const handleToggleVisited = async (id: string, current: boolean) => {
+    if (isDemoUser || !isConfigured) {
+      const updated = places.map((p) => (p.id === id ? { ...p, is_visited: !current } : p))
+      saveLocalPlaces(updated)
+      if (selectedPlace?.id === id) {
+        setSelectedPlace({ ...selectedPlace, is_visited: !current })
+      }
+      return
+    }
+
     const updated = await updatePlace(id, { is_visited: !current })
     setPlaces((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     if (selectedPlace?.id === id) setSelectedPlace(updated)
@@ -130,6 +272,24 @@ export default function GeoMindApp() {
 
   // ─── JSON Import ──────────────────────────────────────────────────────────
   const handleImport = async (items: Partial<Place>[]) => {
+    if (isDemoUser || !isConfigured) {
+      const newItems: Place[] = items.map((item, index) => ({
+        id: 'imported-' + Date.now() + '-' + index,
+        user_id: user?.id ?? 'demo-user',
+        name: item.name ?? 'Sin nombre',
+        latitude: item.latitude ?? 0,
+        longitude: item.longitude ?? 0,
+        is_visited: item.is_visited ?? false,
+        price_level: item.price_level ?? 'free',
+        notes_markdown: item.notes_markdown ?? '',
+        metadata: item.metadata ?? {},
+        created_at: new Date().toISOString(),
+      }))
+      const updated = [...newItems, ...places]
+      saveLocalPlaces(updated)
+      return
+    }
+
     for (const item of items) {
       const created = await createPlace({
         name: item.name ?? 'Sin nombre',
@@ -142,6 +302,33 @@ export default function GeoMindApp() {
       })
       setPlaces((prev) => [created, ...prev])
     }
+  }
+
+  // ─── Guest / Demo Mode ────────────────────────────────────────────────────
+  const handleContinueAsGuest = () => {
+    setIsDemoUser(true)
+    setUser({ id: 'demo-user', email: 'invitado@geomind.local' })
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('geomind_is_demo', 'true')
+    }
+  }
+
+  const handleLogout = async () => {
+    if (isDemoUser) {
+      setIsDemoUser(false)
+      setUser(null)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('geomind_is_demo')
+      }
+      return
+    }
+
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Ignore network error on signout
+    }
+    setUser(null)
   }
 
   // ─── Close panel ─────────────────────────────────────────────────────────
@@ -162,7 +349,7 @@ export default function GeoMindApp() {
     )
   }
 
-  if (!user) return <AuthForm />
+  if (!user) return <AuthForm onContinueAsGuest={handleContinueAsGuest} />
 
   // ─── Sheet heights map ────────────────────────────────────────────────────
   const sheetTranslates: Record<SheetHeight, string> = {
@@ -285,6 +472,22 @@ export default function GeoMindApp() {
           <span className="font-bold text-sm hidden sm:block" style={{ color: 'var(--text-primary)' }}>
             GeoMind
           </span>
+
+          {/* Demo badge */}
+          {isDemoUser && (
+            <span
+              className="badge text-xs hidden md:inline-flex items-center gap-1"
+              style={{
+                background: 'rgba(99, 102, 241, 0.15)',
+                color: '#818cf8',
+                borderColor: 'rgba(99, 102, 241, 0.3)',
+              }}
+              title="Guardando datos localmente en tu navegador"
+            >
+              <Sparkles size={11} />
+              Modo Demo (Local)
+            </span>
+          )}
         </div>
 
         {/* Search */}
@@ -344,8 +547,8 @@ export default function GeoMindApp() {
           </button>
           <button
             className="btn btn-ghost btn-sm btn-icon"
-            onClick={() => supabase.auth.signOut()}
-            title="Cerrar sesión"
+            onClick={handleLogout}
+            title={isDemoUser ? 'Salir del modo Demo' : 'Cerrar sesión'}
           >
             <LogOut size={15} />
           </button>
