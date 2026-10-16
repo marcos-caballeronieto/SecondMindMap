@@ -27,7 +27,7 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `geomind-export-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `secondmindmap-export-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -80,9 +80,8 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
           {(['export', 'import'] as const).map((t) => (
             <button
               key={t}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                tab === t ? 'btn btn-primary' : 'text-secondary'
-              }`}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${tab === t ? 'btn btn-primary' : 'text-secondary'
+                }`}
               style={{ padding: '0.4rem 0.75rem' }}
               onClick={() => setTab(t)}
             >

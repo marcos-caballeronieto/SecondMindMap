@@ -1,5 +1,5 @@
 -- ============================================================
--- GeoMind MVP - Supabase Database Setup
+-- SecondMindMap MVP - Supabase Database Setup
 -- Run this in your Supabase SQL Editor
 -- ============================================================
 

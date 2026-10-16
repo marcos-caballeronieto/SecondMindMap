@@ -5,14 +5,14 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'GeoMind – Tu Segundo Cerebro Geográfico',
+  title: 'SecondMindMap – Tu Segundo Cerebro Geográfico',
   description:
     'Guarda, organiza y consulta información enriquecida sobre lugares del mundo con un mapa interactivo.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'GeoMind',
+    title: 'SecondMindMap',
   },
   icons: {
     icon: '/icon-192.png',

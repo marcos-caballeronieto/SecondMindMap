@@ -61,7 +61,7 @@ const INITIAL_DEMO_PLACES: Place[] = [
   },
 ]
 
-export default function GeoMindApp() {
+export default function SecondMindMapApp() {
   const supabase = createClient()
   const isConfigured = isSupabaseConfigured()
 
@@ -72,10 +72,13 @@ export default function GeoMindApp() {
 
   useEffect(() => {
     // Check local demo session first
-    const demoStored = typeof window !== 'undefined' ? localStorage.getItem('geomind_is_demo') : null
+    const demoStored =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('secondmindmap_is_demo') || localStorage.getItem('geomind_is_demo')
+        : null
     if (demoStored === 'true') {
       setIsDemoUser(true)
-      setUser({ id: 'demo-user', email: 'invitado@geomind.local' })
+      setUser({ id: 'demo-user', email: 'invitado@secondmindmap.local' })
       setAuthLoading(false)
       return
     }
@@ -110,7 +113,7 @@ export default function GeoMindApp() {
   const saveLocalPlaces = (newPlaces: Place[]) => {
     setPlaces(newPlaces)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('geomind_places', JSON.stringify(newPlaces))
+      localStorage.setItem('secondmindmap_places', JSON.stringify(newPlaces))
     }
   }
 
@@ -119,7 +122,8 @@ export default function GeoMindApp() {
 
     if (isDemoUser || !isConfigured) {
       if (typeof window !== 'undefined') {
-        const cached = localStorage.getItem('geomind_places')
+        const cached =
+          localStorage.getItem('secondmindmap_places') || localStorage.getItem('geomind_places')
         if (cached) {
           try {
             setPlaces(JSON.parse(cached))
@@ -129,7 +133,7 @@ export default function GeoMindApp() {
           }
         }
         setPlaces(INITIAL_DEMO_PLACES)
-        localStorage.setItem('geomind_places', JSON.stringify(INITIAL_DEMO_PLACES))
+        localStorage.setItem('secondmindmap_places', JSON.stringify(INITIAL_DEMO_PLACES))
       }
       return
     }
@@ -307,9 +311,9 @@ export default function GeoMindApp() {
   // ─── Guest / Demo Mode ────────────────────────────────────────────────────
   const handleContinueAsGuest = () => {
     setIsDemoUser(true)
-    setUser({ id: 'demo-user', email: 'invitado@geomind.local' })
+    setUser({ id: 'demo-user', email: 'invitado@secondmindmap.local' })
     if (typeof window !== 'undefined') {
-      localStorage.setItem('geomind_is_demo', 'true')
+      localStorage.setItem('secondmindmap_is_demo', 'true')
     }
   }
 
@@ -318,6 +322,7 @@ export default function GeoMindApp() {
       setIsDemoUser(false)
       setUser(null)
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('secondmindmap_is_demo')
         localStorage.removeItem('geomind_is_demo')
       }
       return
@@ -470,7 +475,7 @@ export default function GeoMindApp() {
             <Globe size={16} color="white" />
           </div>
           <span className="font-bold text-sm hidden sm:block" style={{ color: 'var(--text-primary)' }}>
-            GeoMind
+            SecondMindMap
           </span>
 
           {/* Demo badge */}

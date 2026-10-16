@@ -1,6 +1,6 @@
 {
-  "name": "GeoMind – Segundo Cerebro Geográfico",
-  "short_name": "GeoMind",
+  "name": "SecondMindMap – Segundo Cerebro Geográfico",
+  "short_name": "SecondMindMap",
   "description": "Guarda, organiza y consulta información enriquecida sobre lugares del mundo.",
   "start_url": "/",
   "display": "standalone",

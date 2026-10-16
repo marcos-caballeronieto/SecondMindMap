@@ -74,7 +74,7 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
             <Globe size={32} color="white" />
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            GeoMind
+            SecondMindMap
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             Tu segundo cerebro geográfico
