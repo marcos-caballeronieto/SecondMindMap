@@ -57,15 +57,15 @@ Este documento centraliza el estado de desarrollo de SecondMindMap, dividiendo l
 ### ⚠️ Tareas Manuales Requeridas para Conectar Supabase en la Nube
 > Actualmente la app funciona con el **Modo Demo (Local)** porque `.env.local` tiene valores de prueba. Para activar Supabase en producción debes realizar estos pasos manuales:
 
-- [ ] **1. Crear Proyecto en Supabase:** Registrarse en [supabase.com](https://supabase.com) y crear un proyecto nuevo.
-- [ ] **2. Ejecutar Migración SQL:** Copiar el contenido de [`app/supabase/migration.sql`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/supabase/migration.sql) y ejecutarlo en el **SQL Editor** del panel de Supabase.
-- [ ] **3. Añadir credenciales reales en `.env.local`:** En Supabase (*Project Settings -> API*), copiar la `Project URL` y la `anon public key`, y reemplazar en [`app/.env.local`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/.env.local):
+- [x] **1. Crear Proyecto en Supabase:** Registrarse en [supabase.com](https://supabase.com) y crear un proyecto nuevo.
+- [x] **2. Ejecutar Migración SQL:** Copiar el contenido de [`app/supabase/migration.sql`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/supabase/migration.sql) y ejecutarlo en el **SQL Editor** del panel de Supabase.
+- [x] **3. Añadir credenciales reales en `.env.local`:** En Supabase (*Project Settings -> API*), copiar la `Project URL` y la `anon public key`, y reemplazar en [`app/.env.local`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/.env.local):
   ```env
   NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key_aqui
   ```
-- [ ] **4. Verificar Autenticación:** Reiniciar el servidor dev (`npm run dev`), registrar tu cuenta real con email/password y verificar la recepción del correo de confirmación.
-- [ ] **5. Migración de Datos Locales a Supabase:** Si creaste lugares en el Modo Demo, exportarlos a JSON desde la barra superior e importarlos tras iniciar sesión con tu cuenta real.
+- [x] **4. Verificar Autenticación:** Reiniciar el servidor dev (`npm run dev`), registrar tu cuenta real con email/password y verificar la recepción del correo de confirmación.
+- [x] **5. Migración de Datos Locales a Supabase:** Si creaste lugares en el Modo Demo, exportarlos a JSON desde la barra superior e importarlos tras iniciar sesión con tu cuenta real.
 
 ---
 
