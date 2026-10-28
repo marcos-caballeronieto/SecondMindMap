@@ -64,11 +64,11 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal glass-strong">
+      <div className="modal glass-strong" role="dialog" aria-modal="true" aria-label="Copia del diario">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
-            Importar / Exportar JSON
+          <h2 className="text-xl" style={{ color: 'var(--text-primary)' }}>
+            Copia del diario
           </h2>
           <button className="btn-icon btn-ghost" onClick={onClose}>
             <X size={16} />
@@ -76,13 +76,18 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: 'var(--bg-base)' }}>
+        <div className="flex gap-2 mb-4 border-b" style={{ borderColor: 'var(--border-bright)' }}>
           {(['export', 'import'] as const).map((t) => (
             <button
               key={t}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${tab === t ? 'btn btn-primary' : 'text-secondary'
-                }`}
-              style={{ padding: '0.4rem 0.75rem' }}
+              className="flex-1 pb-2 text-sm"
+              style={{
+                fontFamily: 'var(--font-body-stack)',
+                color: tab === t ? 'var(--accent)' : 'var(--text-secondary)',
+                borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
+                background: 'transparent',
+              }}
+              aria-pressed={tab === t}
               onClick={() => setTab(t)}
             >
               {t === 'export' ? (
@@ -102,10 +107,10 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
             <pre
               className="text-xs overflow-auto rounded-lg p-3"
               style={{
-                background: 'var(--bg-base)',
+                background: 'var(--bg-surface)',
                 border: '1px solid var(--border)',
                 maxHeight: '300px',
-                color: 'var(--text-secondary)',
+                color: 'var(--text-primary)',
                 fontFamily: 'monospace',
               }}
             >
@@ -140,12 +145,13 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
 
             {message && (
               <div
-                className="flex items-start gap-2 p-3 rounded-lg text-sm"
+                className="flex items-start gap-2 p-2 text-sm"
                 style={{
-                  background: message.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                  border: `1px solid ${message.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                  color: message.type === 'success' ? '#4ade80' : '#f87171',
+                  color: message.type === 'success' ? 'var(--success)' : 'var(--danger)',
+                  borderTop: '1px solid var(--border)',
+                  borderBottom: '1px solid var(--border)',
                 }}
+                role={message.type === 'error' ? 'alert' : 'status'}
               >
                 {message.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
                 {message.text}

@@ -4,7 +4,7 @@ import { useRef, useCallback, useState, useEffect } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import Map, { Marker, NavigationControl, type MapRef, type MapMouseEvent } from 'react-map-gl/maplibre'
-import { MapPin, Plus } from 'lucide-react'
+import { Check, MapPin, Plus } from 'lucide-react'
 import type { Place } from '@/lib/types'
 
 // Explicitly set worker URL for MapLibre GL v6+
@@ -12,7 +12,8 @@ if (typeof window !== 'undefined') {
   maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs')
 }
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+// Custom paper & ink style, hosted in app/public (spec D1). Built from the CARTO style.
+const MAP_STYLE = '/map/paper-ink.json'
 
 interface MapViewProps {
   places: Place[]
@@ -22,12 +23,13 @@ interface MapViewProps {
   pendingMarker: { lat: number; lng: number } | null
 }
 
+// Price marks use the paper & ink tokens (spec D4), defined in globals.css
 const PRICE_COLORS: Record<string, string> = {
-  free: '#22c55e',
-  '$': '#6366f1',
-  '$$': '#f59e0b',
-  '$$$': '#ef4444',
-  '$$$$': '#ec4899',
+  free: 'var(--price-free)',
+  '$': 'var(--price-1)',
+  '$$': 'var(--price-2)',
+  '$$$': 'var(--price-3)',
+  '$$$$': 'var(--price-4)',
 }
 
 export default function MapView({
@@ -86,7 +88,7 @@ export default function MapView({
 
       {/* Existing places */}
       {places.map((place) => {
-        const color = PRICE_COLORS[place.price_level] ?? '#6366f1'
+        const color = PRICE_COLORS[place.price_level] ?? 'var(--accent)'
         const isActive = place.id === selectedPlaceId
         return (
           <Marker
@@ -101,15 +103,18 @@ export default function MapView({
           >
             <div
               className="map-pin-marker"
-              style={{
-                background: color,
-                opacity: place.is_visited ? 0.65 : 1,
-              }}
+              style={{ background: color }}
               data-active={isActive}
+              aria-label={`${place.name}${place.is_visited ? ', visitado' : ''}`}
             >
               <span className="pin-inner">
                 <MapPin size={16} />
               </span>
+              {place.is_visited && (
+                <span className="map-pin-stamp" aria-hidden="true">
+                  <Check size={11} strokeWidth={3} />
+                </span>
+              )}
             </div>
           </Marker>
         )
@@ -124,7 +129,7 @@ export default function MapView({
         >
           <div
             className="map-pin-marker"
-            style={{ background: 'var(--accent)', animation: 'pulse 1s infinite' }}
+            style={{ background: 'var(--accent)', outline: '2px dashed var(--accent)', outlineOffset: '3px' }}
           >
             <span className="pin-inner">
               <Plus size={16} />

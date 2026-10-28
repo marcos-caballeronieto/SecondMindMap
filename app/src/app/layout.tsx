@@ -1,8 +1,27 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { IM_Fell_English, Libre_Baskerville, Caveat } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+// Paper & ink typography (spec D2): display, book, and hand accent.
+const fontDisplay = IM_Fell_English({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+})
+
+const fontBody = Libre_Baskerville({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-body',
+})
+
+const fontHand = Caveat({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-hand',
+})
 
 export const metadata: Metadata = {
   title: 'SecondMindMap – Tu Segundo Cerebro Geográfico',
@@ -26,7 +45,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0f172a',
+  themeColor: '#f3e9d2',
 }
 
 export default function RootLayout({
@@ -35,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" className={inter.variable}>
+    <html lang="es" className={`${fontDisplay.variable} ${fontBody.variable} ${fontHand.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   )

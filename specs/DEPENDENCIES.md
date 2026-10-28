@@ -56,6 +56,8 @@
    - Evitar patrones obsoletos de Next.js Pages Router; el proyecto usa exclusivamente **App Router** (`src/app/`).
 3. **Tailwind CSS v4:**
    - La configuración y tokens de diseño principales residen en `src/app/globals.css`.
+   - Importar Tailwind con `@import "tailwindcss";` (no usar las directivas `@tailwind base/components/utilities` de v3).
+   - No añadir resets globales sin capa (`*{margin:0;padding:0}`): al estar sin capa anulan las utilidades de Tailwind. Preflight ya cubre el reset.
 4. **MapLibre GL v6 & react-map-gl v8:**
    - Utilizar el proveedor de mapas vectoriales CARTO Dark Matter (`https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json`).
    - Todos los marcadores interactivos usan HTML Marker accesible con soporte táctil.

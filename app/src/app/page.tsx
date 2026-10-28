@@ -19,6 +19,15 @@ const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
 type PanelMode = 'closed' | 'list' | 'detail' | 'form'
 type SheetHeight = 'peek' | 'half' | 'full'
 
+// Price marks in the paper & ink palette (spec D4)
+const PRICE_VARS: Record<string, string> = {
+  free: 'var(--price-free)',
+  '$': 'var(--price-1)',
+  '$$': 'var(--price-2)',
+  '$$$': 'var(--price-3)',
+  '$$$$': 'var(--price-4)',
+}
+
 const INITIAL_DEMO_PLACES: Place[] = [
   {
     id: 'demo-1',
@@ -363,14 +372,16 @@ export default function SecondMindMapApp() {
     full: 'translateY(0)',
   }
 
-  const PanelContent = () => {
+  // Plain render function (not a component): avoids remounting the panel on every render
+  const renderPanel = () => {
     if (panelMode === 'form') {
       return (
         <>
-          <h3 className="font-semibold text-sm mb-4" style={{ color: 'var(--text-primary)' }}>
-            {editingPlace ? 'Editar lugar' : 'Nuevo lugar'}
+          <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)' }}>
+            {editingPlace ? 'Editar entrada' : 'Nueva entrada'}
           </h3>
           <PlaceForm
+            key={`${editingPlace?.id ?? 'new'}-${pendingMarker?.lat ?? ''}-${pendingMarker?.lng ?? ''}`}
             initialLat={pendingMarker?.lat}
             initialLng={pendingMarker?.lng}
             editingPlace={editingPlace}
@@ -402,7 +413,7 @@ export default function SecondMindMapApp() {
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            Mis lugares ({filteredPlaces.length})
+            Índice ({filteredPlaces.length})
           </h3>
         </div>
         {loadingPlaces ? (
@@ -411,8 +422,7 @@ export default function SecondMindMapApp() {
           </div>
         ) : filteredPlaces.length === 0 ? (
           <div className="text-center py-8">
-            <MapPin size={32} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm text-muted">
+            <p className="empty-page">
               {searchQuery ? 'Sin resultados' : 'Toca el mapa para añadir un lugar'}
             </p>
           </div>
@@ -420,26 +430,24 @@ export default function SecondMindMapApp() {
           filteredPlaces.map((place) => (
             <button
               key={place.id}
-              className="w-full text-left p-3 rounded-xl transition-all"
-              style={{
-                background: selectedPlace?.id === place.id ? 'var(--accent-subtle)' : 'transparent',
-                border: `1px solid ${selectedPlace?.id === place.id ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
-              }}
+              className="index-row"
+              data-active={selectedPlace?.id === place.id}
               onClick={() => handleSelectPlace(place)}
             >
-              <div className="flex items-center gap-2">
-                <MapPin size={13} style={{ color: place.is_visited ? 'var(--success)' : 'var(--accent-hover)', flexShrink: 0 }} />
-                <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                  {place.name}
+              <span className="index-row-title">{place.name}</span>
+              <span className="index-row-meta">
+                <span className="price-mark">
+                  <span className="price-dot" style={{ color: PRICE_VARS[place.price_level] ?? 'var(--accent)' }} />
+                  {place.price_level === 'free' ? 'Gratis' : place.price_level}
                 </span>
                 {place.is_visited && (
-                  <span className="ml-auto badge badge-success text-xs" style={{ flexShrink: 0 }}>✓</span>
+                  <span className="stamp" style={{ fontSize: '0.85rem' }}>Visitado</span>
                 )}
-              </div>
+              </span>
               {place.notes_markdown && (
-                <p className="text-xs mt-1 truncate text-muted ml-5">
+                <span className="index-row-snippet">
                   {place.notes_markdown.replace(/[#*`]/g, '').slice(0, 60)}...
-                </p>
+                </span>
               )}
             </button>
           ))
@@ -469,24 +477,19 @@ export default function SecondMindMapApp() {
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--accent)', boxShadow: '0 0 12px rgba(99,102,241,0.5)' }}
+            className="w-8 h-8 flex items-center justify-center border"
+            style={{ borderColor: 'var(--border-bright)', borderRadius: 'var(--radius-sm)', color: 'var(--accent)' }}
           >
-            <Globe size={16} color="white" />
+            <Globe size={16} />
           </div>
-          <span className="font-bold text-sm hidden sm:block" style={{ color: 'var(--text-primary)' }}>
+          <span className="hidden sm:block" style={{ fontFamily: 'var(--font-display-stack)', fontSize: '1.15rem', color: 'var(--text-primary)' }}>
             SecondMindMap
           </span>
 
           {/* Demo badge */}
           {isDemoUser && (
             <span
-              className="badge text-xs hidden md:inline-flex items-center gap-1"
-              style={{
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: '#818cf8',
-                borderColor: 'rgba(99, 102, 241, 0.3)',
-              }}
+              className="badge hidden md:inline-flex items-center gap-1"
               title="Guardando datos localmente en tu navegador"
             >
               <Sparkles size={11} />
@@ -504,7 +507,7 @@ export default function SecondMindMapApp() {
                 type="text"
                 className="input"
                 style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
-                placeholder="Buscar lugares..."
+                placeholder="Buscar en el diario"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -520,9 +523,10 @@ export default function SecondMindMapApp() {
               className="btn btn-ghost btn-sm w-full"
               onClick={() => setShowSearch(true)}
               id="search-button"
+              aria-label="Buscar en el diario"
             >
               <Search size={14} />
-              <span className="hidden sm:inline">Buscar lugar...</span>
+              <span className="hidden sm:inline">Buscar en el diario</span>
             </button>
           )}
         </div>
@@ -562,7 +566,7 @@ export default function SecondMindMapApp() {
 
       {/* ── Desktop Sidebar ─────────────────────────────────────────────── */}
       <aside
-        className="sidebar glass-strong"
+        className="sidebar glass"
         style={{ top: 56 }}
       >
         <div className="p-4">
@@ -570,7 +574,7 @@ export default function SecondMindMapApp() {
           {panelMode !== 'form' && panelMode !== 'detail' && (
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                Lugares ({filteredPlaces.length})
+                Índice ({filteredPlaces.length})
               </h2>
               <button
                 className="btn btn-primary btn-sm"
@@ -581,17 +585,18 @@ export default function SecondMindMapApp() {
                 }}
               >
                 <Plus size={13} />
-                Nuevo
+                Nueva entrada
               </button>
             </div>
           )}
-          <PanelContent />
+          <div key={panelMode} className="page-turn">{renderPanel()}</div>
         </div>
       </aside>
 
       {/* ── Mobile Bottom Sheet ──────────────────────────────────────────── */}
       <div
         className="bottom-sheet glass-strong"
+        aria-label="Índice del diario"
         style={{
           transform: panelMode === 'closed'
             ? 'translateY(calc(100% - 60px))'
@@ -624,15 +629,15 @@ export default function SecondMindMapApp() {
             }
           }}
         >
-          <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+          <span className="text-sm" style={{ fontFamily: 'var(--font-display-stack)', color: 'var(--text-primary)' }}>
             {panelMode === 'detail' && selectedPlace
               ? selectedPlace.name
-              : `${places.length} lugares`}
+              : `${places.length} entradas`}
           </span>
           <div className="flex items-center gap-2">
             <button
               className="btn-icon btn-ghost"
-              style={{ padding: '0.25rem' }}
+              aria-label="Ver índice"
               onClick={(e) => {
                 e.stopPropagation()
                 setPanelMode('list')
@@ -644,7 +649,7 @@ export default function SecondMindMapApp() {
             <ChevronUp
               size={16}
               style={{
-                color: 'var(--text-muted)',
+                color: 'var(--text-secondary)',
                 transform: sheetHeight === 'full' ? 'rotate(180deg)' : 'none',
                 transition: 'transform 0.2s',
               }}
@@ -657,7 +662,7 @@ export default function SecondMindMapApp() {
           className="overflow-y-auto px-4 pb-8"
           style={{ height: 'calc(100% - 72px)', paddingBottom: 'calc(2rem + var(--safe-bottom))' }}
         >
-          <PanelContent />
+          <div key={panelMode} className="page-turn">{renderPanel()}</div>
         </div>
       </div>
 

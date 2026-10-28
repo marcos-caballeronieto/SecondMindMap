@@ -85,14 +85,15 @@ export default function PlaceForm({
           />
           <button
             type="button"
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm btn-icon"
+            aria-label="Importar desde Google Maps"
             onClick={handleParseUrl}
             disabled={parsingUrl || !mapsUrl.trim()}
           >
             {parsingUrl ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
           </button>
         </div>
-        {parseError && <p className="text-xs" style={{ color: 'var(--danger)' }}>{parseError}</p>}
+        {parseError && <p className="text-xs" role="alert" style={{ color: 'var(--danger)' }}>{parseError}</p>}
       </div>
 
       <hr className="divider" />
@@ -156,7 +157,7 @@ export default function PlaceForm({
             <option value="$$$$">$$$$ – Premium</option>
           </select>
         </div>
-        <div className="form-group pb-0.5">
+        <div className="form-group pb-1">
           <label className="checkbox-label">
             <input
               type="checkbox"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Mail, Lock, Globe, AlertTriangle, Sparkles, ArrowRight } from 'lucide-react'
+import { Loader2, Mail, Lock, Globe, AlertTriangle, ArrowRight } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 interface AuthFormProps {
@@ -59,55 +59,50 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
     }
   }
 
+  const isSuccess = message.includes('éxito') || message.includes('¡')
+
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 overflow-y-auto"
+      className="min-h-screen w-full overflow-y-auto"
       style={{ background: 'var(--bg-base)' }}
     >
-      <div className="w-full max-w-sm py-8">
-        {/* Logo */}
+      <div className="mx-auto w-full max-w-sm px-4 py-8">
+        {/* Diary cover: name and tagline */}
         <div className="text-center mb-6">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ background: 'var(--accent)', boxShadow: '0 0 32px rgba(99,102,241,0.4)' }}
-          >
-            <Globe size={32} color="white" />
+          <div className="inline-flex items-center justify-center mb-3" style={{ color: 'var(--accent)' }}>
+            <Globe size={28} />
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-3xl" style={{ color: 'var(--text-primary)' }}>
             SecondMindMap
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="hand text-xl mt-1" style={{ color: 'var(--text-secondary)' }}>
             Tu segundo cerebro geográfico
           </p>
         </div>
 
-        {/* Supabase Notice if using placeholder */}
+        {/* Supabase notice if using the placeholder URL */}
         {!isConfigured && (
           <div
-            className="mb-4 p-4 rounded-xl text-xs space-y-2 border"
+            className="mb-4 p-3 text-xs space-y-2"
             style={{
-              background: 'rgba(245, 158, 11, 0.08)',
-              borderColor: 'rgba(245, 158, 11, 0.25)',
-              color: '#fbbf24',
+              color: 'var(--warning)',
+              borderTop: '1px solid var(--border-bright)',
+              borderBottom: '1px solid var(--border-bright)',
             }}
           >
-            <div className="flex items-center gap-2 font-semibold text-sm text-amber-300">
+            <div className="flex items-center gap-2 font-bold text-sm">
               <AlertTriangle size={16} />
               <span>Supabase pendiente de configurar</span>
             </div>
-            <p className="text-amber-200/80 leading-relaxed">
-              Actualmente <code className="bg-black/40 px-1 py-0.5 rounded">app/.env.local</code> contiene la URL de marcador de posición <code className="bg-black/40 px-1 py-0.5 rounded">placeholder.supabase.co</code>.
+            <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Actualmente <code>app/.env.local</code> contiene la URL de marcador de posición <code>placeholder.supabase.co</code>.
             </p>
             {onContinueAsGuest && (
               <button
                 type="button"
                 onClick={onContinueAsGuest}
-                className="w-full mt-2 py-2.5 px-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-md text-white"
-                style={{
-                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                }}
+                className="btn btn-primary btn-sm w-full mt-2"
               >
-                <Sparkles size={14} />
                 <span>Probar ahora en Modo Demo (Local)</span>
                 <ArrowRight size={14} />
               </button>
@@ -115,22 +110,21 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
           </div>
         )}
 
-        {/* Card */}
-        <div className="glass rounded-2xl p-6" style={{ boxShadow: 'var(--shadow-lg)' }}>
+        {/* Cover page: sign-in form */}
+        <div className="auth-cover">
           {/* Tab switcher */}
-          <div
-            className="flex gap-1 mb-6 p-1 rounded-xl"
-            style={{ background: 'var(--bg-base)' }}
-          >
+          <div className="flex gap-2 mb-6 border-b" style={{ borderColor: 'var(--border-bright)' }}>
             {(['login', 'signup'] as const).map((m) => (
               <button
                 key={m}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                  mode === m
-                    ? 'btn btn-primary'
-                    : 'text-secondary hover:text-primary'
-                }`}
-                style={{ padding: '0.4rem' }}
+                className="flex-1 pb-2 text-sm"
+                style={{
+                  fontFamily: 'var(--font-body-stack)',
+                  color: mode === m ? 'var(--accent)' : 'var(--text-secondary)',
+                  borderBottom: mode === m ? '2px solid var(--accent)' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+                aria-pressed={mode === m}
                 onClick={() => { setMode(m); setMessage('') }}
               >
                 {m === 'login' ? 'Iniciar sesión' : 'Registrarse'}
@@ -144,20 +138,13 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
               <div style={{ position: 'relative' }}>
                 <Mail
                   size={15}
-                  style={{
-                    position: 'absolute',
-                    left: '0.75rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                    pointerEvents: 'none',
-                  }}
+                  style={{ position: 'absolute', left: '0.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}
                 />
                 <input
                   id="auth-email"
                   type="email"
                   className="input"
-                  style={{ paddingLeft: '2.25rem' }}
+                  style={{ paddingLeft: '1.75rem' }}
                   placeholder="tu@email.com"
                   required
                   value={email}
@@ -171,20 +158,13 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
               <div style={{ position: 'relative' }}>
                 <Lock
                   size={15}
-                  style={{
-                    position: 'absolute',
-                    left: '0.75rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                    pointerEvents: 'none',
-                  }}
+                  style={{ position: 'absolute', left: '0.25rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}
                 />
                 <input
                   id="auth-password"
                   type="password"
                   className="input"
-                  style={{ paddingLeft: '2.25rem' }}
+                  style={{ paddingLeft: '1.75rem' }}
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -196,12 +176,9 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
 
             {message && (
               <p
-                className="text-xs p-3 rounded-lg leading-relaxed"
-                style={{
-                  background: message.includes('éxito') || message.includes('¡') ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                  color: message.includes('éxito') || message.includes('¡') ? '#4ade80' : '#f87171',
-                  border: `1px solid ${message.includes('éxito') || message.includes('¡') ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                }}
+                className="text-sm leading-relaxed"
+                role={isSuccess ? 'status' : 'alert'}
+                style={{ color: isSuccess ? 'var(--success)' : 'var(--danger)' }}
               >
                 {message}
               </p>
@@ -213,13 +190,14 @@ export default function AuthForm({ onContinueAsGuest }: AuthFormProps) {
             </button>
           </form>
 
-          {/* Quick Guest mode access if configured or not */}
+          {/* Demo mode link */}
           {onContinueAsGuest && isConfigured && (
-            <div className="mt-4 pt-4 border-t text-center" style={{ borderColor: 'var(--border)' }}>
+            <div className="mt-4 pt-4 text-center" style={{ borderTop: '1px solid var(--border)' }}>
               <button
                 type="button"
                 onClick={onContinueAsGuest}
-                className="text-xs text-muted hover:text-secondary underline"
+                className="text-sm underline"
+                style={{ color: 'var(--focus)', background: 'transparent' }}
               >
                 O continuar en Modo Demo (Local) sin iniciar sesión
               </button>
