@@ -53,3 +53,4 @@ Thumbs.db
 *.sw?
 .agents/
 skills-lock.json
+.env.local
