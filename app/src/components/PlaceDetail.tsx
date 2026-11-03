@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, MapPin, Trash2, Edit3, X, DollarSign } from 'lucide-react'
+import { Check, MapPin, Trash2, Edit3, X, DollarSign, Maximize2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Place } from '@/lib/types'
@@ -29,6 +29,7 @@ interface PlaceDetailProps {
   onEdit: (place: Place) => void
   onDelete: (id: string) => void
   onToggleVisited: (id: string, current: boolean) => void
+  onExpandNotes: (notes: string, title: string) => void
 }
 
 export default function PlaceDetail({
@@ -37,6 +38,7 @@ export default function PlaceDetail({
   onEdit,
   onDelete,
   onToggleVisited,
+  onExpandNotes,
 }: PlaceDetailProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const priceColor = PRICE_COLORS[place.price_level] ?? 'var(--accent)'
@@ -92,10 +94,25 @@ export default function PlaceDetail({
 
       {/* Markdown notes */}
       {place.notes_markdown ? (
-        <div className="markdown-body overflow-y-auto" style={{ maxHeight: '300px' }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {place.notes_markdown}
-          </ReactMarkdown>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Notas
+            </h3>
+            <button
+              className="btn-icon btn-ghost"
+              onClick={() => onExpandNotes(place.notes_markdown, place.name)}
+              aria-label="Expandir notas a pantalla completa"
+              title="Ver en pantalla completa"
+            >
+              <Maximize2 size={14} />
+            </button>
+          </div>
+          <div className="markdown-body overflow-y-auto" style={{ maxHeight: '300px' }}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {place.notes_markdown}
+            </ReactMarkdown>
+          </div>
         </div>
       ) : (
         <p className="text-muted text-sm italic">Sin notas aún. Edita para añadir información.</p>

@@ -11,6 +11,7 @@ import type { Place, PlaceInsert } from '@/lib/types'
 import PlaceDetail from '@/components/PlaceDetail'
 import PlaceForm from '@/components/PlaceForm'
 import JsonModal from '@/components/JsonModal'
+import MarkdownModal from '@/components/MarkdownModal'
 import AuthForm from '@/components/AuthForm'
 
 // MapView is client-only (no SSR) because MapLibre needs browser APIs
@@ -172,6 +173,7 @@ export default function SecondMindMapApp() {
   const [panelMode, setPanelMode] = useState<PanelMode>('closed')
   const [sheetHeight, setSheetHeight] = useState<SheetHeight>('half')
   const [showJsonModal, setShowJsonModal] = useState(false)
+  const [markdownModal, setMarkdownModal] = useState<{ content: string; title: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
 
@@ -404,6 +406,7 @@ export default function SecondMindMapApp() {
           }}
           onDelete={handleDeletePlace}
           onToggleVisited={handleToggleVisited}
+          onExpandNotes={(content, title) => setMarkdownModal({ content, title })}
         />
       )
     }
@@ -672,6 +675,16 @@ export default function SecondMindMapApp() {
           places={places}
           onImport={handleImport}
           onClose={() => setShowJsonModal(false)}
+        />
+      )}
+
+      {/* ── Markdown Modal ───────────────────────────────────────────────── */}
+      {markdownModal && (
+        <MarkdownModal
+          isOpen={true}
+          onClose={() => setMarkdownModal(null)}
+          content={markdownModal.content}
+          title={markdownModal.title}
         />
       )}
     </div>
