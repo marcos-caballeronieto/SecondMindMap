@@ -79,6 +79,11 @@ Este documento centraliza el estado de desarrollo de SecondMindMap, dividiendo l
   - [ ] Selector de color e icono representativo por colección.
   - [ ] Filtrado en el mapa por una o varias colecciones simultáneas.
 - [ ] **Campos Avanzados del PRD**
+- [ ] **Sistema Modular de Notas Markdown (Especificación en [`specs/features/SISTEMA_MODULAR_NOTAS.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/SISTEMA_MODULAR_NOTAS.md))**
+  - [ ] 8 categorías opcionales activadas mediante checkboxes (Historia, Curiosidades, Qué mirar, Arte, Gastronomía, Consejos, Fotos, Notas personales).
+  - [ ] Campos de texto independientes durante la edición que compilan a un único documento Markdown con encabezados estandarizados.
+  - [ ] Ficha del lugar con cabeceras colapsables (acordeones con estética de cuaderno de viaje artesanal).
+  - [ ] Formato listo para generación/enriquecimiento asistido por IA.
   - [ ] Campo `is_must_see` (Imperdible / Muy conocido vs Gema oculta).
   - [ ] Atributo `historical_era` (ej: *"Antigua Roma"*, *"Siglo XIX"*, *"Renacimiento"*).
   - [ ] Filtro cronológico / temporal en la interfaz.
