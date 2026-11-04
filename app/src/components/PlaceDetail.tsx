@@ -1,10 +1,22 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Check, MapPin, Trash2, Edit3, X, DollarSign, Maximize2 } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import {
+  Check,
+  MapPin,
+  Trash2,
+  Edit3,
+  X,
+  DollarSign,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { Place } from '@/lib/types'
 import { getPopulatedSections } from '@/lib/markdown-sections'
-import SectionAccordion from './notebook/SectionAccordion'
+import { SectionIcon } from './notebook/SectionIcon'
 
 const PRICE_LABELS: Record<string, string> = {
   free: 'Gratis',
@@ -41,6 +53,7 @@ export default function PlaceDetail({
   onExpandNotes,
 }: PlaceDetailProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [activePageIndex, setActivePageIndex] = useState(0)
   const priceColor = PRICE_COLORS[place.price_level] ?? 'var(--accent)'
 
   // Parse populated sections from the markdown
@@ -49,37 +62,13 @@ export default function PlaceDetail({
     [place.notes_markdown]
   )
 
-  // Track accordion open state per section key
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {}
-    const count = populatedSections.length
-    populatedSections.forEach((sec, index) => {
-      // 1 or 2 sections: expanded by default; 3+: first open, others collapsed
-      initial[sec.key] = count <= 2 || index === 0
-    })
-    return initial
-  })
+  // Reset page when place changes
+  useEffect(() => {
+    setActivePageIndex(0)
+  }, [place.id])
 
-  // Check if all are currently expanded
-  const allExpanded =
-    populatedSections.length > 0 &&
-    populatedSections.every((s) => openSections[s.key] === true)
-
-  const handleToggleSection = (key: string) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }))
-  }
-
-  const handleToggleAll = () => {
-    const targetState = !allExpanded
-    const next: Record<string, boolean> = {}
-    populatedSections.forEach((s) => {
-      next[s.key] = targetState
-    })
-    setOpenSections(next)
-  }
+  const activeSection = populatedSections[activePageIndex] ?? populatedSections[0]
+  const hasMultiplePages = populatedSections.length > 1
 
   return (
     <div className="fade-in flex flex-col gap-4">
@@ -88,7 +77,7 @@ export default function PlaceDetail({
         <div className="flex items-center gap-2 min-w-0">
           <span className="price-dot flex-shrink-0 mt-2" style={{ color: priceColor }} />
           <h2
-            className="text-2xl leading-snug"
+            className="text-2xl leading-snug truncate"
             style={{ color: 'var(--text-primary)' }}
           >
             {place.name}
@@ -130,55 +119,145 @@ export default function PlaceDetail({
 
       <hr className="divider" />
 
-      {/* Modular Diary Notes */}
-      <div>
+      {/* Modular Diary Notes (Paged Notebook View) */}
+      <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <h3 className="label mb-0">Notas de campo</h3>
+            <h3 className="label mb-0">Hojas del diario</h3>
             {populatedSections.length > 0 && (
               <span className="text-[10px] text-[var(--text-muted)] font-mono">
                 ({populatedSections.length})
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1">
-            {populatedSections.length > 1 && (
-              <button
-                type="button"
-                onClick={handleToggleAll}
-                className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1.5 py-0.5 rounded transition-colors"
-                style={{ fontVariant: 'small-caps' }}
-              >
-                {allExpanded ? 'Colapsar todo' : 'Expandir todo'}
-              </button>
-            )}
-            {populatedSections.length > 0 && (
-              <button
-                className="btn-icon btn-ghost min-w-[32px] min-h-[32px] p-1"
-                onClick={() => onExpandNotes(place.notes_markdown, place.name)}
-                aria-label="Expandir notas a pantalla completa"
-                title="Ver en pantalla completa"
-              >
-                <Maximize2 size={13} />
-              </button>
-            )}
-          </div>
+          {populatedSections.length > 0 && (
+            <button
+              className="btn-icon btn-ghost min-w-[28px] min-h-[28px] p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              onClick={() => onExpandNotes(place.notes_markdown, place.name)}
+              aria-label="Expandir notas a pantalla completa"
+              title="Ver en pantalla completa"
+            >
+              <Maximize2 size={13} />
+            </button>
+          )}
         </div>
 
         {populatedSections.length > 0 ? (
-          <div className="border-t border-[var(--border)] overflow-y-auto max-h-[360px] pr-1">
-            {populatedSections.map((sec) => (
-              <SectionAccordion
-                key={sec.key}
-                config={sec.config}
-                content={sec.content}
-                isOpen={!!openSections[sec.key]}
-                onToggle={() => handleToggleSection(sec.key)}
-              />
-            ))}
+          <div className="flex flex-col border border-[var(--border)] rounded-sm bg-[var(--bg-base)] p-3">
+            {/* Horizontal Tabs for multiple sections */}
+            {hasMultiplePages && (
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 mb-2.5 border-b border-[var(--border)] scrollbar-thin">
+                {populatedSections.map((sec, idx) => {
+                  const isActive = idx === activePageIndex
+                  return (
+                    <button
+                      key={sec.key}
+                      type="button"
+                      onClick={() => setActivePageIndex(idx)}
+                      className={`
+                        inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-t-sm whitespace-nowrap transition-all flex-shrink-0 cursor-pointer
+                        ${
+                          isActive
+                            ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-b-0 border-[var(--border-bright)] font-semibold -mb-[1px]'
+                            : 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] border border-transparent'
+                        }
+                      `}
+                      style={isActive ? { borderTop: '2px solid var(--accent)' } : undefined}
+                    >
+                      <SectionIcon
+                        sectionKey={sec.key}
+                        size={12}
+                        className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}
+                      />
+                      <span>{sec.config.titleEs}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Active Page Header */}
+            <div className="flex items-center justify-between pb-1 mb-2 border-b border-[var(--border)]">
+              <div className="flex items-center gap-2 min-w-0">
+                <SectionIcon
+                  sectionKey={activeSection.key}
+                  size={15}
+                  className="text-[var(--accent)] flex-shrink-0"
+                />
+                <h4
+                  className="text-base italic text-[var(--text-primary)] truncate"
+                  style={{ fontFamily: 'var(--font-display-stack)' }}
+                >
+                  {activeSection.config.titleEs}
+                </h4>
+              </div>
+              {hasMultiplePages && (
+                <span className="text-[11px] text-[var(--text-muted)] font-mono flex-shrink-0 ml-2">
+                  {activePageIndex + 1}/{populatedSections.length}
+                </span>
+              )}
+            </div>
+
+            {/* Active Page Body */}
+            <div
+              className="markdown-body overflow-y-auto max-h-[280px] min-h-[100px] pr-1"
+              style={{
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word',
+              }}
+            >
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {activeSection.content}
+              </ReactMarkdown>
+            </div>
+
+            {/* Page Turn Controls */}
+            {hasMultiplePages && (
+              <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border)]">
+                <button
+                  type="button"
+                  disabled={activePageIndex === 0}
+                  onClick={() => setActivePageIndex((p) => Math.max(0, p - 1))}
+                  className="btn btn-ghost btn-sm text-xs py-1 px-2 h-auto min-h-[28px] gap-1 disabled:opacity-30"
+                >
+                  <ChevronLeft size={13} />
+                  <span>Anterior</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {populatedSections.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActivePageIndex(i)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                        i === activePageIndex
+                          ? 'bg-[var(--accent)] scale-125'
+                          : 'bg-[var(--border-bright)]'
+                      }`}
+                      aria-label={`Ir a la página ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={activePageIndex === populatedSections.length - 1}
+                  onClick={() =>
+                    setActivePageIndex((p) =>
+                      Math.min(populatedSections.length - 1, p + 1)
+                    )
+                  }
+                  className="btn btn-ghost btn-sm text-xs py-1 px-2 h-auto min-h-[28px] gap-1 disabled:opacity-30"
+                >
+                  <span>Siguiente</span>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            )}
           </div>
         ) : (
-          <p className="text-muted text-sm italic">
+          <p className="text-muted text-sm italic py-2">
             Sin notas de campo aún. Edita la entrada para añadir información.
           </p>
         )}

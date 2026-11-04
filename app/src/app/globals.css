@@ -536,6 +536,8 @@
   .markdown-body {
     font-family: var(--font-body-stack);
     font-size: 0.9rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
     line-height: 1.75;
     color: var(--text-primary);
   }

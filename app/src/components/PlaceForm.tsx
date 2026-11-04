@@ -1,7 +1,18 @@
 'use client'
 
-import { useState } from 'react'
-import { Loader2, Link2, MapPin, X, Code2, Columns } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import {
+  Loader2,
+  Link2,
+  MapPin,
+  X,
+  Code2,
+  Columns,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+  ListFilter,
+} from 'lucide-react'
 import { parseGoogleMapsUrl } from '@/lib/actions/parse-maps-url'
 import type { Place, PlaceInsert, PriceLevel, SectionKey, SectionMap } from '@/lib/types'
 import {
@@ -40,16 +51,24 @@ export default function PlaceForm({
   // Initialize modular sections from existing markdown
   const initialParsed = parseMarkdownToSections(editingPlace?.notes_markdown ?? '')
   const [selectedKeys, setSelectedKeys] = useState<SectionKey[]>(() => {
-    // If editing a place with existing sections, activate those sections
     if (initialParsed.activeKeys.length > 0) {
       return initialParsed.activeKeys
     }
-    // Default for fresh places: empty, or user can toggle General Info with 1 click
     return []
   })
   const [sectionContents, setSectionContents] = useState<SectionMap>(
     initialParsed.sections
   )
+
+  // Active section tab in editor: null means 'view all' or default to first
+  const [activeEditorTab, setActiveEditorTab] = useState<SectionKey | 'all'>('all')
+
+  // Keep active editor tab synced when selectedKeys change
+  useEffect(() => {
+    if (selectedKeys.length > 0 && activeEditorTab !== 'all' && !selectedKeys.includes(activeEditorTab)) {
+      setActiveEditorTab(selectedKeys[0])
+    }
+  }, [selectedKeys, activeEditorTab])
 
   const [form, setForm] = useState<PlaceInsert>({
     name: editingPlace?.name ?? '',
@@ -88,12 +107,15 @@ export default function PlaceForm({
   // Handle section checkbox toggle
   const handleToggleSection = (key: SectionKey, checked: boolean) => {
     if (checked) {
-      // Add section in canonical order
-      setSelectedKeys((prev) =>
-        SECTION_KEYS.filter((k) => k === key || prev.includes(k))
-      )
+      setSelectedKeys((prev) => {
+        const next = SECTION_KEYS.filter((k) => k === key || prev.includes(k))
+        return next
+      })
+      // If was viewing single tab, switch to newly added section
+      if (activeEditorTab !== 'all') {
+        setActiveEditorTab(key)
+      }
     } else {
-      // Unchecking: if it has content, confirm deletion
       const currentText = sectionContents[key]?.trim()
       if (currentText) {
         const confirmed = window.confirm(
@@ -121,12 +143,10 @@ export default function PlaceForm({
   // Toggle between raw markdown and modular sections
   const handleToggleRawMode = () => {
     if (!rawMarkdownMode) {
-      // Switching from modular to raw: compile current modular sections
       const compiled = compileSectionsToMarkdown(sectionContents, selectedKeys)
       setForm((prev) => ({ ...prev, notes_markdown: compiled }))
       setRawMarkdownMode(true)
     } else {
-      // Switching from raw to modular: re-parse raw markdown
       const reParsed = parseMarkdownToSections(form.notes_markdown)
       setSelectedKeys(reParsed.activeKeys)
       setSectionContents(reParsed.sections)
@@ -139,7 +159,6 @@ export default function PlaceForm({
     if (!form.name.trim()) return
     setLoading(true)
 
-    // Determine final markdown to save
     let finalMarkdown = form.notes_markdown
     if (!rawMarkdownMode) {
       finalMarkdown = compileSectionsToMarkdown(sectionContents, selectedKeys)
@@ -154,6 +173,9 @@ export default function PlaceForm({
       setLoading(false)
     }
   }
+
+  const activeIndex =
+    activeEditorTab !== 'all' ? selectedKeys.indexOf(activeEditorTab) : -1
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -262,7 +284,7 @@ export default function PlaceForm({
           <div>
             <label className="label mb-0">SECCIONES DEL CUADERNO (NOTAS)</label>
             <p className="text-[11px] text-[var(--text-secondary)] italic">
-              Elige las secciones que correspondan a este lugar. Para lugares con poca información, usa solo &quot;Información general&quot;.
+              Activa las secciones deseadas. Para lugares con poca información, usa solo &quot;Información general&quot;.
             </p>
           </div>
           <button
@@ -290,7 +312,8 @@ export default function PlaceForm({
           <div className="mt-2">
             <textarea
               id="place-notes"
-              className="input textarea w-full"
+              className="input textarea w-full leading-relaxed"
+              style={{ minHeight: '180px', overflowWrap: 'break-word', wordBreak: 'break-word' }}
               placeholder="## ℹ️ General Information&#10;Resumen rápido..."
               value={form.notes_markdown}
               onChange={(e) => setForm({ ...form, notes_markdown: e.target.value })}
@@ -317,56 +340,151 @@ export default function PlaceForm({
               })}
             </div>
 
-            {/* Dynamic Input Fields for Active Sections */}
+            {/* Section Editor */}
             {selectedKeys.length > 0 ? (
-              <div className="flex flex-col gap-4 mt-2">
-                {selectedKeys.map((key) => {
-                  const config = SECTION_BY_KEY[key]
-                  if (!config) return null
-                  const content = sectionContents[key] ?? ''
-
-                  return (
-                    <div
-                      key={key}
-                      className="p-3 rounded-sm border border-[var(--border)] bg-[var(--bg-base)] flex flex-col gap-2 transition-all"
-                    >
-                      {/* Section Heading */}
-                      <div className="flex items-center justify-between pb-1 border-b border-[var(--border)]">
-                        <div className="flex items-center gap-2">
-                          <SectionIcon
-                            sectionKey={key}
-                            size={16}
-                            className="text-[var(--accent)] flex-shrink-0"
-                          />
-                          <h4
-                            className="text-base italic leading-snug text-[var(--text-primary)]"
-                            style={{ fontFamily: 'var(--font-display-stack)' }}
+              <div className="flex flex-col gap-3 mt-2">
+                {/* Tab Switcher if multiple sections are selected */}
+                {selectedKeys.length > 1 && (
+                  <div className="flex items-center justify-between gap-1 pb-1 border-b border-[var(--border)]">
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin">
+                      {selectedKeys.map((key) => {
+                        const cfg = SECTION_BY_KEY[key]
+                        const isActive = activeEditorTab === key
+                        const hasText = !!sectionContents[key]?.trim()
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setActiveEditorTab(key)}
+                            className={`
+                              inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-t-sm whitespace-nowrap transition-all flex-shrink-0 cursor-pointer
+                              ${
+                                isActive
+                                  ? 'bg-[var(--bg-base)] text-[var(--text-primary)] border border-b-0 border-[var(--border-bright)] font-semibold -mb-[1px]'
+                                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] border border-transparent'
+                              }
+                            `}
+                            style={isActive ? { borderTop: '2px solid var(--accent)' } : undefined}
                           >
-                            {config.titleEs}
-                          </h4>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleSection(key, false)}
-                          className="btn-icon btn-ghost min-w-[28px] min-h-[28px] p-1 text-[var(--text-muted)] hover:text-[var(--danger)]"
-                          title={`Desactivar sección ${config.titleEs}`}
-                          aria-label={`Desactivar sección ${config.titleEs}`}
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-
-                      {/* Underlined Textarea styled with paper & ink lines */}
-                      <textarea
-                        className="input textarea w-full text-sm leading-relaxed"
-                        placeholder={config.placeholder}
-                        value={content}
-                        onChange={(e) => handleSectionTextChange(key, e.target.value)}
-                        rows={key === 'general_info' ? 4 : 3}
-                      />
+                            <SectionIcon
+                              sectionKey={key}
+                              size={12}
+                              className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}
+                            />
+                            <span>{cfg.titleEs}</span>
+                            {hasText && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0" />
+                            )}
+                          </button>
+                        )
+                      })}
                     </div>
-                  )
-                })}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveEditorTab(activeEditorTab === 'all' ? selectedKeys[0] : 'all')
+                      }
+                      className="btn btn-ghost btn-sm text-[11px] py-0.5 px-1.5 h-auto min-h-[26px] gap-1 flex-shrink-0"
+                      title={activeEditorTab === 'all' ? 'Ver por páginas individuales' : 'Ver todas juntas'}
+                    >
+                      {activeEditorTab === 'all' ? (
+                        <>
+                          <Layers size={11} />
+                          <span>Por página</span>
+                        </>
+                      ) : (
+                        <>
+                          <ListFilter size={11} />
+                          <span>Ver todas</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Render Selected Section(s) */}
+                {selectedKeys
+                  .filter((key) => activeEditorTab === 'all' || activeEditorTab === key)
+                  .map((key) => {
+                    const config = SECTION_BY_KEY[key]
+                    if (!config) return null
+                    const content = sectionContents[key] ?? ''
+
+                    return (
+                      <div
+                        key={key}
+                        className="p-3 rounded-sm border border-[var(--border)] bg-[var(--bg-base)] flex flex-col gap-2 transition-all"
+                      >
+                        {/* Section Heading */}
+                        <div className="flex items-center justify-between pb-1 border-b border-[var(--border)]">
+                          <div className="flex items-center gap-2">
+                            <SectionIcon
+                              sectionKey={key}
+                              size={16}
+                              className="text-[var(--accent)] flex-shrink-0"
+                            />
+                            <h4
+                              className="text-base italic leading-snug text-[var(--text-primary)]"
+                              style={{ fontFamily: 'var(--font-display-stack)' }}
+                            >
+                              {config.titleEs}
+                            </h4>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSection(key, false)}
+                            className="btn-icon btn-ghost min-w-[28px] min-h-[28px] p-1 text-[var(--text-muted)] hover:text-[var(--danger)]"
+                            title={`Desactivar sección ${config.titleEs}`}
+                            aria-label={`Desactivar sección ${config.titleEs}`}
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+
+                        {/* Underlined Textarea with expansive height and word wrapping */}
+                        <textarea
+                          className="input textarea w-full text-sm leading-relaxed"
+                          style={{
+                            minHeight: activeEditorTab !== 'all' ? '180px' : '100px',
+                            overflowWrap: 'break-word',
+                            wordBreak: 'break-word',
+                          }}
+                          placeholder={config.placeholder}
+                          value={content}
+                          onChange={(e) => handleSectionTextChange(key, e.target.value)}
+                          rows={activeEditorTab !== 'all' ? 7 : 4}
+                        />
+
+                        {/* Prev / Next controls when viewing single tab */}
+                        {activeEditorTab !== 'all' && selectedKeys.length > 1 && (
+                          <div className="flex items-center justify-between pt-2 border-t border-[var(--border)] text-xs text-[var(--text-secondary)]">
+                            <button
+                              type="button"
+                              disabled={activeIndex <= 0}
+                              onClick={() => setActiveEditorTab(selectedKeys[activeIndex - 1])}
+                              className="btn btn-ghost btn-sm text-xs py-0.5 px-2 h-auto min-h-[26px] gap-1 disabled:opacity-30"
+                            >
+                              <ChevronLeft size={12} />
+                              <span>Anterior</span>
+                            </button>
+                            <span className="font-mono text-[11px]">
+                              {activeIndex + 1} de {selectedKeys.length}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={activeIndex >= selectedKeys.length - 1}
+                              onClick={() => setActiveEditorTab(selectedKeys[activeIndex + 1])}
+                              className="btn btn-ghost btn-sm text-xs py-0.5 px-2 h-auto min-h-[26px] gap-1 disabled:opacity-30"
+                            >
+                              <span>Siguiente</span>
+                              <ChevronRight size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
               </div>
             ) : (
               <div className="p-4 text-center rounded-sm border border-dashed border-[var(--border-bright)] bg-transparent">
