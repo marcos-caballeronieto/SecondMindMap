@@ -1,131 +1,131 @@
-# Roadmap del Proyecto: SecondMindMap (Segundo Cerebro Geográfico)
+# Project Roadmap: SecondMindMap (Geographic Second Brain)
 
-Este documento centraliza el estado de desarrollo de SecondMindMap, dividiendo las funcionalidades entre lo completado en el **MVP (Fase 1)** y las siguientes etapas de evolución (**Fase 2: Colecciones y Multimedia**, **Fase 3: Capacidades Nativas y Offline**, y **Fase 4: IA y Rutas Avanzadas**).
+This document centralizes the development status of SecondMindMap, dividing features across what has been completed in the **MVP (Phase 1)** and subsequent evolution stages (**Phase 2: Organization, Collections & Multimedia**, **Phase 3: Native Mobile Capabilities & Offline Mode**, and **Phase 4: Geospatial Intelligence, Routes & Social**).
 
 ---
 
-## 📊 Resumen General de Progreso
+## 📊 General Progress Summary
 
-| Fase | Estado | Cobertura Estimada |
+| Phase | Status | Estimated Coverage |
 | :--- | :--- | :--- |
-| **Fase 1: MVP Core (Mobile-First & Supabase)** | **Completado (Listo para producción/uso)** | 100% |
-| **Fase 2: Organización, Colecciones y Multimedia** | **Pendiente / Planificado** | 0% |
-| **Fase 3: Experiencia Móvil Nativa & Modo Offline** | **Pendiente / Planificado** | 0% |
-| **Fase 4: Inteligencia Geoespacial, Rutas y Social** | **Futuro / Exploración** | 0% |
+| **Phase 1: Core MVP (Mobile-First & Supabase)** | **Completed (Production / ready for use)** | 100% |
+| **Phase 2: Organization, Collections & Multimedia** | **Pending / Planned** | 0% |
+| **Phase 3: Native Mobile Experience & Offline Mode** | **Pending / Planned** | 0% |
+| **Phase 4: Geospatial Intelligence, Routes & Social** | **Future / Exploration** | 0% |
 
 ---
 
-## 🟢 Fase 1: MVP Core (Completado)
+## 🟢 Phase 1: Core MVP (Completed)
 
-*Objetivo: Tener un segundo cerebro geográfico funcional, accesible en móvil/escritorio con autenticación, persistencia y visualización ágil.*
+*Objective: Deliver a fully functional geographic second brain, accessible on mobile and desktop with authentication, persistence, and responsive visualization.*
 
-- [x] **Configuración Base y Runtime**
-  - [x] Inicialización de Next.js 16 (App Router) + TypeScript + Tailwind CSS v4.
-  - [x] Documento de control de dependencias ([`DEPENDENCIES.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/specs/DEPENDENCIES.md)).
-  - [x] Configuración de control de versiones `.gitignore` protegiendo credenciales y secretos.
-- [x] **Motor Cartográfico (MapLibre GL)**
-  - [x] Mapa base interactivo con soporte táctil (pinch-to-zoom, pan) usando CARTO Dark Matter sin coste de API comercial.
-  - [x] Integración de `react-map-gl/maplibre` con importación dinámica (`ssr: false`).
-  - [x] Creación manual de pines al tocar o hacer clic directamente en el mapa.
-  - [x] Marcadores personalizados codificados por color según nivel de precio (`free`, `$`, `$$`, `$$$`, `$$$$`).
-  - [x] Efecto visual de lugar visitado (opacidad/distintivo) y pin activo destacado con animación.
-  - [x] Auto-centrado suave (*fly-to*) al seleccionar un lugar.
-- [x] **Diseño Adaptativo (Mobile-First & Desktop)**
-  - [x] **Modo Móvil (Android):** Mapa a pantalla completa con *Bottom Sheet* deslizable (manija táctil y estados: *peek*, *half*, *full*).
-  - [x] **Modo Escritorio:** Sidebar lateral fijo de 380px con lista, ficha detallada y formularios.
-  - [x] Barra superior compacta con buscador y accesos directos rápidos.
-  - [x] Sistema de diseño dark con estética glassmorphism (`globals.css`).
-- [x] **Gestión de Lugares (CRUD & Contenido Enriquecido)**
-  - [x] Formulario completo de creación y edición de lugares.
-  - [x] Visualizador y editor de notas con soporte **Markdown** (`react-markdown` + `remark-gfm`).
-  - [x] Toggle rápido de estado "Visitado / Sin visitar".
-  - [x] Búsqueda instantánea de lugares por nombre o contenido de notas.
-  - [x] Eliminación de lugares con confirmación preventiva.
-- [x] **Integraciones de Entrada y Salida**
-  - [x] **Parser de URLs de Google Maps:** Server Action que resuelve enlaces estándar y cortos (`maps.app.goo.gl/...`), extrayendo coordenadas y nombre del lugar.
-  - [x] **Exportador JSON / GeoJSON:** Descarga local de los datos para backup o ingesta por IA.
-  - [x] **Importador JSON:** Modal para pegar datasets estructurados generados por LLMs/agentes con validación.
-- [x] **Backend & Seguridad (Supabase)**
-  - [x] Autenticación de usuarios por email/password (Login y Registro implementados en código).
-  - [x] Esquema SQL de la tabla `places` con metadatos JSONB ([`migration.sql`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/supabase/migration.sql)).
-  - [x] Políticas estrictas de Row Level Security (RLS): cada usuario solo lee y modifica sus propios lugares.
-- [x] **Soporte PWA Base**
-  - [x] `manifest.json` configurado para instalación en Android en modo `standalone`.
-  - [x] Iconos de aplicación (192px y 512px) generados y configurados.
-  - [x] Configuración de viewport móvil `viewport-fit=cover` para aprovechar pantallas sin bordes.
+- [x] **Base Configuration & Runtime**
+  - [x] Initialization of Next.js 16 (App Router) + TypeScript + Tailwind CSS v4.
+  - [x] Dependency tracking document ([`DEPENDENCIES.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/specs/DEPENDENCIES.md)).
+  - [x] `.gitignore` version control setup protecting credentials and secrets.
+- [x] **Cartography Engine (MapLibre GL)**
+  - [x] Interactive base map with touch gesture support (pinch-to-zoom, pan) using CARTO Dark Matter without commercial API fees.
+  - [x] Integration of `react-map-gl/maplibre` with dynamic importing (`ssr: false`).
+  - [x] Manual pin placement by tapping or clicking directly on the map.
+  - [x] Custom color-coded pin markers based on price tier (`free`, `$`, `$$`, `$$$`, `$$$$`).
+  - [x] Visual distinction for visited places (opacity/badge) and highlighted active pin with animation.
+  - [x] Smooth auto-centering (*fly-to*) when selecting a place.
+- [x] **Adaptive Layout (Mobile-First & Desktop)**
+  - [x] **Mobile Mode (Android):** Full-screen map with draggable *Bottom Sheet* (touch handle with states: *peek*, *half*, *full*).
+  - [x] **Desktop Mode:** Fixed 380px sidebar featuring place list, detailed view, and forms.
+  - [x] Compact top navigation bar with search bar and quick shortcuts.
+  - [x] Dark design system with glassmorphism aesthetic (`globals.css`).
+- [x] **Place Management (CRUD & Rich Content)**
+  - [x] Complete form for creating and editing places.
+  - [x] Note viewer and editor supporting **Markdown** (`react-markdown` + `remark-gfm`).
+  - [x] Quick toggle for "Visited / Unvisited" status.
+  - [x] Instant search filtering places by name or note contents.
+  - [x] Safe deletion of places with preventive confirmation modal.
+- [x] **Inbound & Outbound Integrations**
+  - [x] **Google Maps URL Parser:** Server Action resolving standard and shortened URLs (`maps.app.goo.gl/...`), extracting coordinates and place name.
+  - [x] **JSON / GeoJSON Exporter:** Local export download for backup or AI ingestion.
+  - [x] **JSON Importer:** Modal for pasting structured datasets generated by LLMs/agents with validation.
+- [x] **Backend & Security (Supabase)**
+  - [x] Email/password user authentication (Sign In and Sign Up implemented in code).
+  - [x] SQL schema for the `places` table with JSONB metadata ([`migration.sql`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/supabase/migration.sql)).
+  - [x] Strict Row Level Security (RLS) policies: each user can only read and mutate their own places.
+- [x] **Core PWA Support**
+  - [x] `manifest.json` configured for Android installation in `standalone` display mode.
+  - [x] Application icons (192px and 512px) generated and linked.
+  - [x] Mobile viewport configuration with `viewport-fit=cover` to leverage edge-to-edge screens.
 
-### ⚠️ Tareas Manuales Requeridas para Conectar Supabase en la Nube
-> Actualmente la app funciona con el **Modo Demo (Local)** porque `.env.local` tiene valores de prueba. Para activar Supabase en producción debes realizar estos pasos manuales:
+### ⚠️ Manual Tasks Required to Connect Supabase Cloud
+> Currently, the app defaults to **Demo Mode (Local)** because `.env.local` contains placeholder values. To enable production Supabase, follow these manual steps:
 
-- [x] **1. Crear Proyecto en Supabase:** Registrarse en [supabase.com](https://supabase.com) y crear un proyecto nuevo.
-- [x] **2. Ejecutar Migración SQL:** Copiar el contenido de [`app/supabase/migration.sql`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/supabase/migration.sql) y ejecutarlo en el **SQL Editor** del panel de Supabase.
-- [x] **3. Añadir credenciales reales en `.env.local`:** En Supabase (*Project Settings -> API*), copiar la `Project URL` y la `anon public key`, y reemplazar en [`app/.env.local`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/.env.local):
+- [x] **1. Create a Supabase Project:** Sign up at [supabase.com](https://supabase.com) and create a new project.
+- [x] **2. Run SQL Migration:** Copy the contents of [`app/supabase/migration.sql`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/supabase/migration.sql) and execute them in the **SQL Editor** of the Supabase dashboard.
+- [x] **3. Set Real Credentials in `.env.local`:** In Supabase (*Project Settings -> API*), copy the `Project URL` and `anon public key`, and replace them in [`app/.env.local`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/app/.env.local):
   ```env
-  NEXT_PUBLIC_SUPABASE_URL=https://TU_PROYECTO.supabase.co
-  NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key_aqui
+  NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
   ```
-- [x] **4. Verificar Autenticación:** Reiniciar el servidor dev (`npm run dev`), registrar tu cuenta real con email/password y verificar la recepción del correo de confirmación.
-- [x] **5. Migración de Datos Locales a Supabase:** Si creaste lugares en el Modo Demo, exportarlos a JSON desde la barra superior e importarlos tras iniciar sesión con tu cuenta real.
+- [x] **4. Verify Authentication:** Restart the dev server (`npm run dev`), register a real account with email/password, and verify receiving the confirmation email.
+- [x] **5. Migrate Local Data to Supabase:** If you created places in Demo Mode, export them to JSON from the top bar and import them after logging in with your real account.
 
 ---
 
-## 🟡 Fase 2: Organización, Colecciones y Multimedia (Siguiente Iteración)
+## 🟡 Phase 2: Organization, Collections & Multimedia (Next Iteration)
 
-*Objetivo: Dotar a los lugares de mayor profundidad de contenido, categorización por listas temáticas y soporte para fotos.*
+*Objective: Provide places with greater content depth, thematic list categorization, and image support.*
 
-- [ ] **Sistema de Colecciones y Etiquetas**
-  - [ ] Implementar tabla `collections` y tabla pivote `place_collections`.
-  - [ ] Interfaz para crear listas temáticas (ej: *"Ruta de Cafés en Roma"*, *"Castillos de Escocia"*).
-  - [ ] Selector de color e icono representativo por colección.
-  - [ ] Filtrado en el mapa por una o varias colecciones simultáneas.
-- [ ] **Campos Avanzados del PRD**
-- [ ] **Sistema Modular de Notas Markdown (Especificación en [`specs/features/SISTEMA_MODULAR_NOTAS.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/SISTEMA_MODULAR_NOTAS.md))**
-  - [ ] 8 categorías opcionales activadas mediante checkboxes (Historia, Curiosidades, Qué mirar, Arte, Gastronomía, Consejos, Fotos, Notas personales).
-  - [ ] Campos de texto independientes durante la edición que compilan a un único documento Markdown con encabezados estandarizados.
-  - [ ] Ficha del lugar con cabeceras colapsables (acordeones con estética de cuaderno de viaje artesanal).
-  - [ ] Formato listo para generación/enriquecimiento asistido por IA.
-  - [ ] Campo `is_must_see` (Imperdible / Muy conocido vs Gema oculta).
-  - [ ] Atributo `historical_era` (ej: *"Antigua Roma"*, *"Siglo XIX"*, *"Renacimiento"*).
-  - [ ] Filtro cronológico / temporal en la interfaz.
-- [ ] **Módulo Multimedia (`place_media`)**
-  - [ ] Adjuntar enlaces web de interés (blogs, vídeos de YouTube, Wikipedia).
-  - [ ] Soporte para enlazar imágenes por URL con previsualización tipo tarjeta.
-  - [ ] Galería horizontal deslizable en la ficha del lugar.
-- [ ] **Geocoding Directo (Búsqueda Geográfica de Direcciones)**
-  - [ ] Integración con Nominatim (OpenStreetMap) o MapTiler Geocoding para autocompletar nombres de ciudades y calles sin depender de Google Maps.
-  - [ ] **Importador desde archivo y texto:** Carga directa de archivos (`.json` y `.geojson` FeatureCollection) mediante selector de archivos y drag-and-drop, además de editor de texto para pegar prompts/datasets estructurados de LLMs con validación.
-
----
-
-## 🟠 Fase 3: Experiencia Móvil Nativa & Modo Offline
-
-*Objetivo: Maximizar la usabilidad en viajes reales y sobre el terreno sin conexión.*
-
-- [ ] **Integración Nativa Android (Web Share Target API)**
-  - [ ] Registrar la PWA como destino del menú nativo *"Compartir en..."* de Android.
-  - [ ] Al compartir un enlace de Google Maps desde el móvil, abrir directamente SecondMindMap rellenando el formulario de nuevo pin.
-- [ ] **Subida de Archivos a Supabase Storage**
-  - [ ] Subida de fotos directamente desde la cámara o galería del teléfono.
-  - [ ] Compresión de imágenes en el cliente antes de la subida para ahorrar datos móviles.
-- [ ] **Modo Offline & Caché Persistente**
-  - [ ] Almacenamiento local con IndexedDB (ej: Dexie.js o Supabase Local Cache).
-  - [ ] Service Worker para servir la app sin internet.
-  - [ ] Sincronización en segundo plano (Background Sync) cuando se recupere la conexión.
+- [ ] **Collections & Tagging System**
+  - [ ] Implement `collections` table and `place_collections` pivot table.
+  - [ ] UI for creating thematic lists (e.g., *"Rome Coffee Tour"*, *"Scottish Castles"*).
+  - [ ] Custom color and icon selector per collection.
+  - [ ] Map filtering by one or multiple simultaneous collections.
+- [ ] **Advanced PRD Fields**
+- [ ] **Modular Markdown Notes System (Specification in [`specs/features/modular_note_system.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/modular_note_system.md))**
+  - [ ] 8 optional categories toggled via checkboxes (History, Curiosities, What to Look For, Art, Food, Practical Tips, Photos, Field Notes).
+  - [ ] Dedicated text inputs during editing that compile into a unified Markdown document with standardized headers.
+  - [ ] Place detail card with collapsible headers (accordions styled like a handcrafted traveler's journal).
+  - [ ] AI-ready format for assisted generation and enrichment.
+  - [ ] `is_must_see` attribute (Must-See / Landmark vs Hidden Gem).
+  - [ ] `historical_era` attribute (e.g., *"Ancient Rome"*, *"19th Century"*, *"Renaissance"*).
+  - [ ] Chronological / timeline filter in the user interface.
+- [ ] **Multimedia Module (`place_media`)**
+  - [ ] Attach relevant web links (blogs, YouTube videos, Wikipedia).
+  - [ ] Support image links via URL with card preview.
+  - [ ] Horizontal scrollable gallery in the place detail view.
+- [ ] **Direct Geocoding (Address Search)**
+  - [ ] Integration with Nominatim (OpenStreetMap) or MapTiler Geocoding to autocomplete city and street names without depending on Google Maps.
+  - [ ] **File and Text Importer:** Direct loading of files (`.json` and `.geojson` FeatureCollection) via file picker and drag-and-drop, plus a text editor to paste structured LLM prompts/datasets with validation.
 
 ---
 
-## 🔵 Fase 4: Inteligencia Geoespacial, Rutas y Social
+## 🟠 Phase 3: Native Mobile Experience & Offline Mode
 
-*Objetivo: Capacidades analíticas, planificación de itinerarios y colaboración.*
+*Objective: Maximize usability during real-world travel and on-the-ground exploration without an internet connection.*
 
-- [ ] **Planificador de Rutas e Itinerarios**
-  - [ ] Agrupación de lugares por días de viaje.
-  - [ ] Cálculo de distancias y visualización de rutas óptimas a pie o en transporte.
-- [ ] **Capas Topográficas y Estilos de Mapa Alternativos**
-  - [ ] Selector de capas (Satélite, Relieve/Topográfico, Claro, Oscuro).
-- [ ] **Agente IA SecondMindMap Integrado**
-  - [ ] Asistente en la app para generar guías automáticas de un lugar a partir de sus notas.
-  - [ ] Recomendación de gemas ocultas cercanas según gustos previos del usuario.
-- [ ] **Compartir y Colaboración**
-  - [ ] Exportar colección como mapa web público de solo lectura (link compartible).
-  - [ ] Colecciones colaborativas entre usuarios.
+- [ ] **Native Android Integration (Web Share Target API)**
+  - [ ] Register the PWA as an Android native *"Share via..."* target.
+  - [ ] Sharing a Google Maps link from mobile opens SecondMindMap directly, pre-filling the new pin form.
+- [ ] **Supabase Storage File Uploads**
+  - [ ] Direct photo uploads from the phone camera or image gallery.
+  - [ ] Client-side image compression prior to upload to conserve mobile bandwidth.
+- [ ] **Offline Mode & Persistent Cache**
+  - [ ] Local storage with IndexedDB (e.g., Dexie.js or Supabase Local Cache).
+  - [ ] Service Worker to serve the app without an internet connection.
+  - [ ] Background Sync once network connectivity is restored.
+
+---
+
+## 🔵 Phase 4: Geospatial Intelligence, Routes & Social
+
+*Objective: Analytical capabilities, itinerary planning, and collaboration.*
+
+- [ ] **Route & Itinerary Planner**
+  - [ ] Group places by travel days.
+  - [ ] Distance calculation and optimal walking / transit route visualization.
+- [ ] **Topographic Layers & Alternative Map Styles**
+  - [ ] Layer switcher (Satellite, Terrain / Topographic, Light, Dark).
+- [ ] **Integrated SecondMindMap AI Agent**
+  - [ ] In-app assistant generating automated travel guides from place notes.
+  - [ ] Nearby hidden gem recommendations based on past user preferences.
+- [ ] **Sharing & Collaboration**
+  - [ ] Export collections as public read-only web maps (shareable link).
+  - [ ] Collaborative multi-user collections.
