@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Check, MapPin, Trash2, Edit3, X, DollarSign, Maximize2 } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import type { Place } from '@/lib/types'
+import { getPopulatedSections } from '@/lib/markdown-sections'
+import SectionAccordion from './notebook/SectionAccordion'
 
 const PRICE_LABELS: Record<string, string> = {
   free: 'Gratis',
@@ -42,6 +42,44 @@ export default function PlaceDetail({
 }: PlaceDetailProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const priceColor = PRICE_COLORS[place.price_level] ?? 'var(--accent)'
+
+  // Parse populated sections from the markdown
+  const populatedSections = useMemo(
+    () => getPopulatedSections(place.notes_markdown || ''),
+    [place.notes_markdown]
+  )
+
+  // Track accordion open state per section key
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    const count = populatedSections.length
+    populatedSections.forEach((sec, index) => {
+      // 1 or 2 sections: expanded by default; 3+: first open, others collapsed
+      initial[sec.key] = count <= 2 || index === 0
+    })
+    return initial
+  })
+
+  // Check if all are currently expanded
+  const allExpanded =
+    populatedSections.length > 0 &&
+    populatedSections.every((s) => openSections[s.key] === true)
+
+  const handleToggleSection = (key: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }))
+  }
+
+  const handleToggleAll = () => {
+    const targetState = !allExpanded
+    const next: Record<string, boolean> = {}
+    populatedSections.forEach((s) => {
+      next[s.key] = targetState
+    })
+    setOpenSections(next)
+  }
 
   return (
     <div className="fade-in flex flex-col gap-4">
@@ -92,31 +130,59 @@ export default function PlaceDetail({
 
       <hr className="divider" />
 
-      {/* Markdown notes */}
-      {place.notes_markdown ? (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-              Notas
-            </h3>
-            <button
-              className="btn-icon btn-ghost"
-              onClick={() => onExpandNotes(place.notes_markdown, place.name)}
-              aria-label="Expandir notas a pantalla completa"
-              title="Ver en pantalla completa"
-            >
-              <Maximize2 size={14} />
-            </button>
+      {/* Modular Diary Notes */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="label mb-0">Notas de campo</h3>
+            {populatedSections.length > 0 && (
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                ({populatedSections.length})
+              </span>
+            )}
           </div>
-          <div className="markdown-body overflow-y-auto" style={{ maxHeight: '300px' }}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {place.notes_markdown}
-            </ReactMarkdown>
+          <div className="flex items-center gap-1">
+            {populatedSections.length > 1 && (
+              <button
+                type="button"
+                onClick={handleToggleAll}
+                className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-1.5 py-0.5 rounded transition-colors"
+                style={{ fontVariant: 'small-caps' }}
+              >
+                {allExpanded ? 'Colapsar todo' : 'Expandir todo'}
+              </button>
+            )}
+            {populatedSections.length > 0 && (
+              <button
+                className="btn-icon btn-ghost min-w-[32px] min-h-[32px] p-1"
+                onClick={() => onExpandNotes(place.notes_markdown, place.name)}
+                aria-label="Expandir notas a pantalla completa"
+                title="Ver en pantalla completa"
+              >
+                <Maximize2 size={13} />
+              </button>
+            )}
           </div>
         </div>
-      ) : (
-        <p className="text-muted text-sm italic">Sin notas aún. Edita para añadir información.</p>
-      )}
+
+        {populatedSections.length > 0 ? (
+          <div className="border-t border-[var(--border)] overflow-y-auto max-h-[360px] pr-1">
+            {populatedSections.map((sec) => (
+              <SectionAccordion
+                key={sec.key}
+                config={sec.config}
+                content={sec.content}
+                isOpen={!!openSections[sec.key]}
+                onToggle={() => handleToggleSection(sec.key)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted text-sm italic">
+            Sin notas de campo aún. Edita la entrada para añadir información.
+          </p>
+        )}
+      </div>
 
       <hr className="divider" />
 
@@ -146,6 +212,7 @@ export default function PlaceDetail({
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => setConfirmDelete(true)}
+            aria-label="Eliminar lugar"
           >
             <Trash2 size={14} />
           </button>

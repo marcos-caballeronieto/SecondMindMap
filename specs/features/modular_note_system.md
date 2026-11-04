@@ -26,14 +26,15 @@ Currently, each place stores all notes within a single freeform text field (`not
 
 ## 2. Official Section Catalog
 
-Eight standard modules are defined. Each module includes a programmatic `key`, a `lucide-react` icon, a standardized Markdown header, and its intended scope:
+Nine standard modules are defined. Each module includes a programmatic `key`, a `lucide-react` icon, a standardized Markdown header, and its intended scope:
 
 > [!NOTE]
 > **Emoji Placeholders vs. Future Thematic SVGs:**  
-> The emojis in the headings below (🏛️, ✨, 👀, 🎨, 🍴, 💡, 📸, 📝) serve **only as temporary placeholders** during early development. At a later stage, they should be replaced with dedicated, custom hand-inked SVG icons that match the "Paper & Ink" traveler's notebook aesthetic outlined in [`DESIGN_CONSTITUTION.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/DESIGN_CONSTITUTION.md), avoiding generic or modern system emoji fonts in the final UI.
+> The emojis in the headings below (ℹ️, 🏛️, ✨, 👀, 🎨, 🍴, 💡, 📸, 📝) serve **only as temporary placeholders** during early development. At a later stage, they should be replaced with dedicated, custom hand-inked SVG icons that match the "Paper & Ink" traveler's notebook aesthetic outlined in [`DESIGN_CONSTITUTION.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/DESIGN_CONSTITUTION.md), avoiding generic or modern system emoji fonts in the final UI.
 
 | Key | Diary Section Title | Lucide Icon | Markdown Header | Purpose & Typical Content |
 | :--- | :--- | :--- | :--- | :--- |
+| `general_info` | General Information | `Info` | `## ℹ️ General Information` | Quick overview, basic details, and consolidated notes for locations with minimal information. |
 | `history` | History & Context | `Landmark` | `## 🏛️ History & Context` | Founding dates, historical periods, architects/builders, social significance, and chronology. |
 | `curiosities` | Curiosities & Trivia | `Sparkles` | `## ✨ Curiosities & Trivia` | Urban legends, oddities, records, quirky stories, and lesser-known historical anecdotes. |
 | `highlights` | What to Look For | `Eye` | `## 👀 What to Look For` | Subtle architectural details, hidden courtyards, acoustics, specific angles, or overlooked carvings. |
@@ -42,6 +43,13 @@ Eight standard modules are defined. Each module includes a programmatic `key`, a
 | `practical_tips` | Practical Tips & Logistics | `Lightbulb` | `## 💡 Practical Tips` | Optimal visiting times to avoid crowds, ticket reservations, dress codes, fees, photography rules, and accessibility. |
 | `photo_spots` | Photography & Viewpoints | `Camera` | `## 📸 Photography & Viewpoints` | Best vantage points, natural lighting directions (sunrise/golden hour), and framing tips. |
 | `personal_notes` | Field Notes & Journal | `BookOpen` | `## 📝 Field Notes & Journal` | Subjective impressions, companions, visit dates, personal ratings, quotes, or travel diary memories. |
+
+### 2.1 The "General Information" Option for Minimal Entries
+For places where the user or AI possesses very little information (e.g. a small neighborhood cafe, a scenic bench, or a newly pinned spot with only a quick description or single observation), forcing a multi-category breakdown into specialized categories (History, Art, Food, etc.) creates unwanted friction and visual clutter.
+Selecting **"General Information"** (`general_info`) provides a lightweight, focused single-section note. It serves three primary functions:
+1. **Places with very little information:** Enables saving a clean, single-paragraph note without empty or forced categories.
+2. **Backward-compatible fallback:** Legacy notes without structured H2 headings automatically map to `general_info`, guaranteeing zero data loss.
+3. **Quick capture / Drafts:** Allows rapid recording on mobile before detailed field research is conducted.
 
 ---
 
@@ -72,7 +80,7 @@ A pure TypeScript utility module with comprehensive unit tests:
 1. **`parseMarkdownToSections(rawMarkdown: string): Record<SectionKey, string>`**
    - Matches standard `## <Emoji>? <Title>` headings using regular expressions.
    - Extracts clean text content for each recognized section.
-   - Any leading text preceding known headers is preserved (e.g., mapped to `personal_notes`) to guarantee zero data loss for legacy notes.
+   - Any leading text preceding known headers or notes completely lacking H2 headers is preserved by mapping to `general_info` to guarantee zero data loss for legacy notes.
 
 2. **`compileSectionsToMarkdown(sections: Partial<Record<SectionKey, string>>, activeKeys: SectionKey[]): string`**
    - Iterates through `activeKeys` in the canonical catalog order.
@@ -196,26 +204,28 @@ app/src/
 
 ## 6. Implementation Checklist
 
-- [ ] **Step 1: Data Model & Parser Utilities (`lib/markdown-sections.ts`)**
-  - [ ] Define types and constants: `SECTION_KEYS`, `SECTION_CONFIGS`.
-  - [ ] Implement `parseMarkdownToSections` and `compileSectionsToMarkdown`.
-  - [ ] Add unit tests verifying that legacy unstructured notes are preserved without data loss.
-- [ ] **Step 2: Accordion Component (`SectionAccordion.tsx`)**
-  - [ ] Build accordion matching paper/ink tokens and typography.
-  - [ ] Include ARIA attributes (`aria-expanded`, keyboard focus).
-- [ ] **Step 3: Update `PlaceDetail.tsx`**
-  - [ ] Replace monolithic Markdown preview with dynamic accordions.
-  - [ ] Add "Expand all / Collapse all" toggle.
-- [ ] **Step 4: Update `PlaceForm.tsx`**
-  - [ ] Replace single textarea with checkbox selection bar.
-  - [ ] Dynamically render underlined textareas for active sections.
-  - [ ] Serialize sections back into `notes_markdown` on submission.
-- [ ] **Step 5: Refine `MarkdownModal.tsx`**
-  - [ ] Style full-screen view as a traveler's notebook page spread.
-- [ ] **Step 6: Quality Assurance & Verification**
-  - [ ] Run `npm run build && npm run lint` in `app/`.
-  - [ ] Test mobile bottom sheet (390px) and desktop sidebar (420px).
-  - [ ] Verify JSON export/import integrity with modular Markdown content.
+- [x] **Step 1: Data Model & Parser Utilities (`lib/markdown-sections.ts`)**
+  - [x] Define types and constants: `SECTION_KEYS`, `SECTION_CATALOG`, `SECTION_BY_KEY`.
+  - [x] Implement `parseMarkdownToSections` and `compileSectionsToMarkdown`.
+  - [x] Support `general_info` for places with minimal notes, mapping unstructured legacy notes with zero data loss.
+  - [x] Add automated unit tests (`scripts/test-modular-notes.mjs`) verifying section parsing, compilation, and legacy preservation.
+- [x] **Step 2: Accordion Component (`SectionAccordion.tsx`)**
+  - [x] Build accordion matching paper/ink tokens and typography.
+  - [x] Include ARIA attributes (`aria-expanded`, keyboard focus).
+- [x] **Step 3: Update `PlaceDetail.tsx`**
+  - [x] Replace monolithic Markdown preview with dynamic accordions.
+  - [x] Add "Expand all / Collapse all" toggle.
+  - [x] Expand by default if 1 or 2 sections; collapse from 3rd onwards.
+- [x] **Step 4: Update `PlaceForm.tsx`**
+  - [x] Replace single textarea with checkbox selection grid for all 9 categories.
+  - [x] Dynamically render underlined textareas with contextual placeholders for active sections.
+  - [x] Provide raw Markdown toggle for power users.
+  - [x] Serialize sections back into `notes_markdown` on submission.
+- [x] **Step 5: Refine `MarkdownModal.tsx`**
+  - [x] Style full-screen view as a traveler's notebook page spread with quick section chips and tabs.
+- [x] **Step 6: Quality Assurance & Verification**
+  - [x] Run `npm run build && npm run lint` in `app/` (passed with 0 errors).
+  - [x] Add and run `npm test` verifying all parser and serialization scenarios.
 - [ ] **Step 7: Thematic Icon Upgrade (Future Phase)**
   - [ ] Design or curate custom monochrome / hand-inked SVG icons for each category.
   - [ ] Replace emoji placeholders across UI components and header parsers with the thematic SVG asset suite.

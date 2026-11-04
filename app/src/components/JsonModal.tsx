@@ -17,7 +17,13 @@ export default function JsonModal({ places, onImport, onClose }: JsonModalProps)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const exportData = JSON.stringify(
-    places.map(({ id, user_id, created_at, ...rest }) => rest),
+    places.map((place) => {
+      const copy = { ...place }
+      delete (copy as Partial<typeof place>).id
+      delete (copy as Partial<typeof place>).user_id
+      delete (copy as Partial<typeof place>).created_at
+      return copy
+    }),
     null,
     2
   )

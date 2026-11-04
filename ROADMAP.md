@@ -79,11 +79,11 @@ This document centralizes the development status of SecondMindMap, dividing feat
   - [ ] Custom color and icon selector per collection.
   - [ ] Map filtering by one or multiple simultaneous collections.
 - [ ] **Advanced PRD Fields**
-- [ ] **Modular Markdown Notes System (Specification in [`specs/features/modular_note_system.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/modular_note_system.md))**
-  - [ ] 8 optional categories toggled via checkboxes (History, Curiosities, What to Look For, Art, Food, Practical Tips, Photos, Field Notes).
-  - [ ] Dedicated text inputs during editing that compile into a unified Markdown document with standardized headers.
-  - [ ] Place detail card with collapsible headers (accordions styled like a handcrafted traveler's journal).
-  - [ ] AI-ready format for assisted generation and enrichment.
+- [x] **Modular Markdown Notes System (Specification in [`specs/features/modular_note_system.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/modular_note_system.md))**
+  - [x] 9 optional categories toggled via checkboxes (General Information, History, Curiosities, What to Look For, Art, Food, Practical Tips, Photos, Field Notes). Includes a minimal "General Information" option for locations with limited information.
+  - [x] Dedicated text inputs during editing that compile into a unified Markdown document with standardized headers.
+  - [x] Place detail card with collapsible headers (accordions styled like a handcrafted traveler's journal).
+  - [x] AI-ready format for assisted generation and enrichment.
   - [ ] `is_must_see` attribute (Must-See / Landmark vs Hidden Gem).
   - [ ] `historical_era` attribute (e.g., *"Ancient Rome"*, *"19th Century"*, *"Renaissance"*).
   - [ ] Chronological / timeline filter in the user interface.

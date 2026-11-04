@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect } from 'react'
 import {
-  Globe, Plus, Search, Download, LogOut, X, MapPin, List, ChevronUp, Sparkles
+  Globe, Plus, Search, Download, LogOut, X, List, ChevronUp, Sparkles
 } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { createPlace, updatePlace, deletePlace } from '@/lib/actions/places'
