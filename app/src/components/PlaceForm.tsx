@@ -5,6 +5,7 @@ import {
   Loader2,
   Link2,
   MapPin,
+  Check,
   X,
   Code2,
   Columns,
@@ -31,6 +32,7 @@ interface PlaceFormProps {
   editingPlace?: Place | null
   onSubmit: (data: PlaceInsert) => Promise<void>
   onCancel: () => void
+  onPickLocationOnMap?: () => void
 }
 
 export default function PlaceForm({
@@ -39,6 +41,7 @@ export default function PlaceForm({
   editingPlace,
   onSubmit,
   onCancel,
+  onPickLocationOnMap,
 }: PlaceFormProps) {
   const [loading, setLoading] = useState(false)
   const [mapsUrl, setMapsUrl] = useState('')
@@ -79,6 +82,17 @@ export default function PlaceForm({
     notes_markdown: editingPlace?.notes_markdown ?? '',
     metadata: editingPlace?.metadata ?? {},
   })
+
+  // Synchronize coordinates when picked from map
+  useEffect(() => {
+    if (initialLat !== undefined && initialLng !== undefined && (initialLat !== 0 || initialLng !== 0)) {
+      setForm((prev) => ({
+        ...prev,
+        latitude: initialLat,
+        longitude: initialLng,
+      }))
+    }
+  }, [initialLat, initialLng])
 
   const handleParseUrl = async () => {
     if (!mapsUrl.trim()) return
@@ -177,6 +191,8 @@ export default function PlaceForm({
   const activeIndex =
     activeEditorTab !== 'all' ? selectedKeys.indexOf(activeEditorTab) : -1
 
+  const hasCoordinates = form.latitude !== 0 && form.longitude !== 0
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Google Maps URL Parser */}
@@ -221,30 +237,60 @@ export default function PlaceForm({
         />
       </div>
 
-      {/* Coordinates */}
-      <div className="flex gap-3">
-        <div className="form-group flex-1">
-          <label className="label" htmlFor="place-lat">Latitud</label>
-          <input
-            id="place-lat"
-            type="number"
-            step="any"
-            className="input"
-            value={form.latitude}
-            onChange={(e) => setForm({ ...form, latitude: parseFloat(e.target.value) || 0 })}
-          />
+      {/* Coordinates & Map Selection Button */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <label className="label mb-0">Coordenadas</label>
+          {onPickLocationOnMap && (
+            <button
+              type="button"
+              onClick={onPickLocationOnMap}
+              className="btn btn-ghost btn-sm text-xs py-1 px-2.5 h-auto min-h-[30px] gap-1.5 text-[var(--accent)] hover:bg-[var(--accent-subtle)] border border-[var(--border-bright)] cursor-pointer"
+              title="Seleccionar punto directamente en el mapa"
+            >
+              <MapPin size={13} />
+              <span>{hasCoordinates ? 'Cambiar en el mapa' : 'Seleccionar en el mapa'}</span>
+            </button>
+          )}
         </div>
-        <div className="form-group flex-1">
-          <label className="label" htmlFor="place-lng">Longitud</label>
-          <input
-            id="place-lng"
-            type="number"
-            step="any"
-            className="input"
-            value={form.longitude}
-            onChange={(e) => setForm({ ...form, longitude: parseFloat(e.target.value) || 0 })}
-          />
+
+        <div className="flex gap-3">
+          <div className="form-group flex-1">
+            <label className="label text-[11px]" htmlFor="place-lat">Latitud</label>
+            <input
+              id="place-lat"
+              type="number"
+              step="any"
+              className="input font-mono"
+              placeholder="0.00000"
+              value={form.latitude !== 0 ? form.latitude : ''}
+              onChange={(e) => setForm({ ...form, latitude: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="form-group flex-1">
+            <label className="label text-[11px]" htmlFor="place-lng">Longitud</label>
+            <input
+              id="place-lng"
+              type="number"
+              step="any"
+              className="input font-mono"
+              placeholder="0.00000"
+              value={form.longitude !== 0 ? form.longitude : ''}
+              onChange={(e) => setForm({ ...form, longitude: parseFloat(e.target.value) || 0 })}
+            />
+          </div>
         </div>
+
+        {hasCoordinates ? (
+          <p className="text-xs text-[var(--success)] flex items-center gap-1 font-mono">
+            <Check size={11} strokeWidth={2.5} />
+            Ubicación fijada: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+          </p>
+        ) : (
+          <p className="text-xs text-[var(--text-muted)] italic">
+            Toca &quot;Seleccionar en el mapa&quot; para ocultar este menú y marcar la ubicación exacta en el mapa.
+          </p>
+        )}
       </div>
 
       {/* Price level & visited */}
@@ -504,14 +550,6 @@ export default function PlaceForm({
           </div>
         )}
       </div>
-
-      {/* Coordinate hint */}
-      {form.latitude !== 0 && form.longitude !== 0 && (
-        <p className="text-xs text-muted flex items-center gap-1">
-          <MapPin size={10} />
-          {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
-        </p>
-      )}
 
       {/* Actions */}
       <div className="flex gap-2 pt-1">

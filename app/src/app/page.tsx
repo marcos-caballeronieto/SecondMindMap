@@ -172,6 +172,7 @@ export default function SecondMindMapApp() {
   const [pendingMarker, setPendingMarker] = useState<{ lat: number; lng: number } | null>(null)
   const [panelMode, setPanelMode] = useState<PanelMode>('closed')
   const [sheetHeight, setSheetHeight] = useState<SheetHeight>('half')
+  const [isPickingLocation, setIsPickingLocation] = useState(false)
   const [showJsonModal, setShowJsonModal] = useState(false)
   const [markdownModal, setMarkdownModal] = useState<{ content: string; title: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -187,13 +188,19 @@ export default function SecondMindMapApp() {
 
   // ─── Map interactions ────────────────────────────────────────────────────
   const handleMapClick = useCallback((lat: number, lng: number) => {
+    if (isPickingLocation) {
+      setPendingMarker({ lat, lng })
+      setIsPickingLocation(false)
+      setSheetHeight('full')
+      return
+    }
     if (panelMode === 'form') return
     setPendingMarker({ lat, lng })
     setEditingPlace(null)
     setSelectedPlace(null)
     setPanelMode('form')
     setSheetHeight('full')
-  }, [panelMode])
+  }, [isPickingLocation, panelMode])
 
   const handleSelectPlace = useCallback((place: Place) => {
     setSelectedPlace(place)
@@ -353,8 +360,22 @@ export default function SecondMindMapApp() {
     setSelectedPlace(null)
     setEditingPlace(null)
     setPendingMarker(null)
+    setIsPickingLocation(false)
     setSheetHeight('peek')
   }
+
+  // Cancel picking location on Escape key
+  useEffect(() => {
+    if (!isPickingLocation) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsPickingLocation(false)
+        setSheetHeight('full')
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isPickingLocation])
 
   // ─── Auth loading ─────────────────────────────────────────────────────────
   if (authLoading) {
@@ -383,12 +404,15 @@ export default function SecondMindMapApp() {
             {editingPlace ? 'Editar entrada' : 'Nueva entrada'}
           </h3>
           <PlaceForm
-            key={`${editingPlace?.id ?? 'new'}-${pendingMarker?.lat ?? ''}-${pendingMarker?.lng ?? ''}`}
+            key={editingPlace ? `edit-${editingPlace.id}` : 'new-place'}
             initialLat={pendingMarker?.lat}
             initialLng={pendingMarker?.lng}
             editingPlace={editingPlace}
             onSubmit={editingPlace ? handleUpdatePlace : handleCreatePlace}
             onCancel={closePanel}
+            onPickLocationOnMap={() => {
+              setIsPickingLocation(true)
+            }}
           />
         </>
       )
@@ -567,10 +591,39 @@ export default function SecondMindMapApp() {
         </div>
       </header>
 
+      {/* ── Map Location Picker Banner ──────────────────────────────────── */}
+      {isPickingLocation && (
+        <aside
+          aria-label="Seleccionar ubicación en el mapa"
+          className="fixed top-18 sm:top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded shadow-lg border border-[var(--border-bright)] bg-[var(--bg-base)] animate-fadeIn max-w-[92vw]"
+          style={{
+            boxShadow: '0 4px 16px rgba(43, 33, 24, 0.2)',
+          }}
+        >
+          <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-ping flex-shrink-0" />
+          <span
+            className="text-xs sm:text-sm font-medium text-[var(--text-primary)] whitespace-nowrap"
+            style={{ fontFamily: 'var(--font-body-stack)' }}
+          >
+            Toca el mapa para fijar la ubicación
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsPickingLocation(false)
+              setSheetHeight('full')
+            }}
+            className="btn btn-ghost btn-sm text-xs py-1 px-2.5 h-auto min-h-[28px] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            Cancelar
+          </button>
+        </aside>
+      )}
+
       {/* ── Desktop Sidebar ─────────────────────────────────────────────── */}
       <aside
         className="sidebar glass"
-        style={{ top: 56 }}
+        style={{ top: 56, transform: isPickingLocation ? 'translateX(100%)' : 'none' }}
       >
         <div className="p-4">
           {/* Sidebar list header */}
@@ -601,7 +654,9 @@ export default function SecondMindMapApp() {
         className="bottom-sheet glass-strong"
         aria-label="Índice del diario"
         style={{
-          transform: panelMode === 'closed'
+          transform: isPickingLocation
+            ? 'translateY(100%)'
+            : panelMode === 'closed'
             ? 'translateY(calc(100% - 60px))'
             : sheetTranslates[sheetHeight],
           height: '85vh',
