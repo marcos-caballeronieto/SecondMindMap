@@ -64,9 +64,35 @@
     color: var(--text-primary);
   }
 
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 99px; }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(43, 33, 24, 0.28) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(43, 33, 24, 0.28);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(43, 33, 24, 0.48);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+
 }
 
 /* ─── Map Container ──────────────────────────────────────────────────────── */
@@ -613,6 +639,17 @@
   .text-danger { color: var(--danger); }
   .text-success { color: var(--success); }
   .hand { font-family: var(--font-hand-stack); }
+
+  /* ─── Hide scrollbar on tab rails & smooth containers ──────────────────── */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 /* ─── Motion ─────────────────────────────────────────────────────────────── */

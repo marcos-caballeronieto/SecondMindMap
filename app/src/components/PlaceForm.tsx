@@ -346,7 +346,7 @@ export default function PlaceForm({
                 {/* Tab Switcher if multiple sections are selected */}
                 {selectedKeys.length > 1 && (
                   <div className="flex items-center justify-between gap-1 pb-1 border-b border-[var(--border)]">
-                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin">
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
                       {selectedKeys.map((key) => {
                         const cfg = SECTION_BY_KEY[key]
                         const isActive = activeEditorTab === key

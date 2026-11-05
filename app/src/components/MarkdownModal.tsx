@@ -140,7 +140,7 @@ export default function MarkdownModal({
 
         {/* Notebook Index Tabs (Horizontal Bookmark Tabs) */}
         {populatedSections.length > 1 && viewMode === 'paged' && (
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 mb-3 border-b border-[var(--border-bright)] scrollbar-thin">
+          <div className="flex items-center gap-1 overflow-x-auto mb-3 border-b border-[var(--border-bright)] no-scrollbar">
             {populatedSections.map((sec, idx) => {
               const isActive = idx === activePageIndex
               return (

@@ -146,7 +146,7 @@ export default function PlaceDetail({
           <div className="flex flex-col border border-[var(--border)] rounded-sm bg-[var(--bg-base)] p-3">
             {/* Horizontal Tabs for multiple sections */}
             {hasMultiplePages && (
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 mb-2.5 border-b border-[var(--border)] scrollbar-thin">
+              <div className="flex items-center gap-1 overflow-x-auto mb-2.5 border-b border-[var(--border)] no-scrollbar">
                 {populatedSections.map((sec, idx) => {
                   const isActive = idx === activePageIndex
                   return (
