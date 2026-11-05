@@ -103,11 +103,10 @@ export default function MarkdownModal({
                 <button
                   type="button"
                   onClick={() => setViewMode('paged')}
-                  className={`btn-sm text-xs py-1 px-2 h-auto min-h-[28px] gap-1 rounded-sm border-0 ${
-                    viewMode === 'paged'
+                  className={`btn-sm text-xs py-1 px-2 h-auto min-h-[28px] gap-1 rounded-sm border-0 ${viewMode === 'paged'
                       ? 'bg-[var(--accent)] text-[var(--ink-on-accent)] font-semibold'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
+                    }`}
                   title="Ver página por página"
                 >
                   <Layers size={12} />
@@ -116,11 +115,10 @@ export default function MarkdownModal({
                 <button
                   type="button"
                   onClick={() => setViewMode('continuous')}
-                  className={`btn-sm text-xs py-1 px-2 h-auto min-h-[28px] gap-1 rounded-sm border-0 ${
-                    viewMode === 'continuous'
+                  className={`btn-sm text-xs py-1 px-2 h-auto min-h-[28px] gap-1 rounded-sm border-0 ${viewMode === 'continuous'
                       ? 'bg-[var(--accent)] text-[var(--ink-on-accent)] font-semibold'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
+                    }`}
                   title="Ver todo en una sola página continua"
                 >
                   <FileText size={12} />
@@ -152,10 +150,9 @@ export default function MarkdownModal({
                   onClick={() => setActivePageIndex(idx)}
                   className={`
                     inline-flex items-center gap-1.5 px-3.5 py-2 text-xs rounded-t-sm whitespace-nowrap transition-all flex-shrink-0 cursor-pointer
-                    ${
-                      isActive
-                        ? 'bg-[var(--bg-base)] text-[var(--text-primary)] border border-b-0 border-[var(--border-bright)] font-semibold -mb-[1px]'
-                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] border border-transparent'
+                    ${isActive
+                      ? 'bg-[var(--bg-base)] text-[var(--text-primary)] border border-b-0 border-[var(--border-bright)] font-semibold -mb-[1px]'
+                      : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] border border-transparent'
                     }
                   `}
                   style={isActive ? { borderTop: '2px solid var(--accent)' } : undefined}
@@ -237,11 +234,10 @@ export default function MarkdownModal({
                           key={i}
                           type="button"
                           onClick={() => setActivePageIndex(i)}
-                          className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
-                            i === activePageIndex
+                          className={`w-2 h-2 rounded-full transition-all cursor-pointer ${i === activePageIndex
                               ? 'bg-[var(--accent)] scale-125'
                               : 'bg-[var(--border-bright)] hover:bg-[var(--text-secondary)]'
-                          }`}
+                            }`}
                           aria-label={`Ir a la página ${i + 1}`}
                         />
                       ))}
