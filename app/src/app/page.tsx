@@ -3,16 +3,26 @@
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect } from 'react'
 import {
-  Globe, Plus, Search, Download, LogOut, X, List, ChevronUp, Sparkles
+  Globe, Plus, Search, Download, LogOut, X, List, ChevronUp, Sparkles, Bookmark
 } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { createPlace, updatePlace, deletePlace } from '@/lib/actions/places'
-import type { Place, PlaceInsert } from '@/lib/types'
+import { getPlaces, createPlace, updatePlace, deletePlace } from '@/lib/actions/places'
+import {
+  getCollections,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+  togglePlaceCollection,
+} from '@/lib/actions/collections'
+import type { Place, PlaceInsert, Collection, CollectionInsert } from '@/lib/types'
 import PlaceDetail from '@/components/PlaceDetail'
 import PlaceForm from '@/components/PlaceForm'
 import JsonModal from '@/components/JsonModal'
 import MarkdownModal from '@/components/MarkdownModal'
 import AuthForm from '@/components/AuthForm'
+import CollectionModal from '@/components/CollectionModal'
+import CollectionFilterBar from '@/components/CollectionFilterBar'
+import { CollectionIcon } from '@/components/notebook/CollectionIcon'
 
 // MapView is client-only (no SSR) because MapLibre needs browser APIs
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false })
@@ -29,6 +39,36 @@ const PRICE_VARS: Record<string, string> = {
   '$$$$': 'var(--price-4)',
 }
 
+const INITIAL_DEMO_COLLECTIONS: Collection[] = [
+  {
+    id: 'demo-col-1',
+    user_id: 'demo-user',
+    name: 'Ruta de Cafés Históricos',
+    description: 'Los cafés con más solera, tertulia literaria y buen café',
+    color: '#8f3a2b',
+    icon: 'Coffee',
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'demo-col-2',
+    user_id: 'demo-user',
+    name: 'Patrimonio & Monumentos',
+    description: 'Obras maestras de la arquitectura y la historia antigua',
+    color: '#2f5d6b',
+    icon: 'Landmark',
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'demo-col-3',
+    user_id: 'demo-user',
+    name: 'Castillos & Fortalezas',
+    description: 'Ciudadelas y recintos históricos medievales',
+    color: '#b07a2a',
+    icon: 'Castle',
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+]
+
 const INITIAL_DEMO_PLACES: Place[] = [
   {
     id: 'demo-1',
@@ -42,6 +82,7 @@ const INITIAL_DEMO_PLACES: Place[] = [
       '## Historia y Arquitectura\n\nEl **Anfiteatro Flavio**, conocido universalmente como el Coliseo, fue inaugurado en el año 80 d.C. bajo el mandato del emperador Tito.\n\n* **Capacidad estimada:** Más de 60.000 espectadores.\n* **Materiales:** Travertino, toba y hormigón romano.\n\n> Consejo viajero: Imprescindible reservar con antelación la entrada con acceso a los subterráneos (hipogeo).',
     metadata: {},
     created_at: new Date(Date.now() - 86400000).toISOString(),
+    collection_ids: ['demo-col-2', 'demo-col-3'],
   },
   {
     id: 'demo-2',
@@ -55,6 +96,7 @@ const INITIAL_DEMO_PLACES: Place[] = [
       '## La Cúpula y el Óculo\n\nEl edificio mejor conservado de la Antigua Roma.\n\n* Su cúpula de hormigón en masa no armado sigue siendo la mayor del mundo (43,3 m de diámetro).\n* El óculo de 9 metros en el cenit es la única fuente de luz natural.\n* Tumba de personalidades históricas como el pintor **Rafael**.',
     metadata: {},
     created_at: new Date(Date.now() - 43200000).toISOString(),
+    collection_ids: ['demo-col-2'],
   },
   {
     id: 'demo-3',
@@ -68,6 +110,7 @@ const INITIAL_DEMO_PLACES: Place[] = [
       '## Obra Cumbre del Modernismo Catalán\n\nDiseñada por Antoni Gaudí, su construcción comenzó en 1882 y continúa activa.\n\n* **Simbolismo lumínico:** Fachada del Nacimiento (amanecer, azules/verdes) vs Fachada de la Pasión (ocaso, rojos/ámbares).\n* **Columnas arborescentes:** El interior emula la estructura de un bosque de piedra.',
     metadata: {},
     created_at: new Date().toISOString(),
+    collection_ids: ['demo-col-1', 'demo-col-2'],
   },
 ]
 
@@ -120,10 +163,22 @@ export default function SecondMindMapApp() {
   const [places, setPlaces] = useState<Place[]>([])
   const [loadingPlaces, setLoadingPlaces] = useState(false)
 
+  // ─── Collections State ───────────────────────────────────────────────────
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([])
+  const [showCollectionModal, setShowCollectionModal] = useState(false)
+
   const saveLocalPlaces = (newPlaces: Place[]) => {
     setPlaces(newPlaces)
     if (typeof window !== 'undefined') {
       localStorage.setItem('secondmindmap_places', JSON.stringify(newPlaces))
+    }
+  }
+
+  const saveLocalCollections = (newCols: Collection[]) => {
+    setCollections(newCols)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('secondmindmap_collections', JSON.stringify(newCols))
     }
   }
 
@@ -132,35 +187,48 @@ export default function SecondMindMapApp() {
 
     if (isDemoUser || !isConfigured) {
       if (typeof window !== 'undefined') {
-        const cached =
+        const cachedPlaces =
           localStorage.getItem('secondmindmap_places') || localStorage.getItem('geomind_places')
-        if (cached) {
+        if (cachedPlaces) {
           try {
-            setPlaces(JSON.parse(cached))
-            return
+            setPlaces(JSON.parse(cachedPlaces))
           } catch {
-            // fallback
+            setPlaces(INITIAL_DEMO_PLACES)
           }
+        } else {
+          setPlaces(INITIAL_DEMO_PLACES)
+          localStorage.setItem('secondmindmap_places', JSON.stringify(INITIAL_DEMO_PLACES))
         }
-        setPlaces(INITIAL_DEMO_PLACES)
-        localStorage.setItem('secondmindmap_places', JSON.stringify(INITIAL_DEMO_PLACES))
+
+        const cachedCols = localStorage.getItem('secondmindmap_collections')
+        if (cachedCols) {
+          try {
+            setCollections(JSON.parse(cachedCols))
+          } catch {
+            setCollections(INITIAL_DEMO_COLLECTIONS)
+          }
+        } else {
+          setCollections(INITIAL_DEMO_COLLECTIONS)
+          localStorage.setItem('secondmindmap_collections', JSON.stringify(INITIAL_DEMO_COLLECTIONS))
+        }
       }
       return
     }
 
     setLoadingPlaces(true)
     try {
-      const { data } = await supabase
-        .from('places')
-        .select('*')
-        .order('created_at', { ascending: false })
-      setPlaces(data ?? [])
+      const [placesData, colsData] = await Promise.all([
+        getPlaces(),
+        getCollections(),
+      ])
+      setPlaces(placesData)
+      setCollections(colsData)
     } catch {
       // Ignore network errors
     } finally {
       setLoadingPlaces(false)
     }
-  }, [user, isDemoUser, isConfigured, supabase])
+  }, [user, isDemoUser, isConfigured])
 
   useEffect(() => {
     fetchPlaces()
@@ -178,13 +246,20 @@ export default function SecondMindMapApp() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
 
-  // ─── Filtered places for search ──────────────────────────────────────────
-  const filteredPlaces = places.filter(
-    (p) =>
+  // ─── Filtered places (Search + Match ALL / AND logic for Collections) ─────
+  const filteredPlaces = places.filter((p) => {
+    const matchesSearch =
       searchQuery === '' ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.notes_markdown && p.notes_markdown.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+
+    if (!matchesSearch) return false
+
+    if (selectedCollectionIds.length === 0) return true
+
+    const placeCols = p.collection_ids ?? []
+    return selectedCollectionIds.every((id) => placeCols.includes(id))
+  })
 
   // ─── Map interactions ────────────────────────────────────────────────────
   const handleMapClick = useCallback((lat: number, lng: number) => {
@@ -209,7 +284,7 @@ export default function SecondMindMapApp() {
     setPendingMarker(null)
   }, [])
 
-  // ─── CRUD ─────────────────────────────────────────────────────────────────
+  // ─── CRUD Places ─────────────────────────────────────────────────────────
   const handleCreatePlace = async (data: PlaceInsert) => {
     if (isDemoUser || !isConfigured) {
       const newPlace: Place = {
@@ -217,6 +292,7 @@ export default function SecondMindMapApp() {
         id: 'place-' + Date.now(),
         user_id: user?.id ?? 'demo-user',
         created_at: new Date().toISOString(),
+        collection_ids: data.collection_ids ?? [],
       }
       const updated = [newPlace, ...places]
       saveLocalPlaces(updated)
@@ -242,6 +318,7 @@ export default function SecondMindMapApp() {
       const updatedPlace: Place = {
         ...editingPlace,
         ...data,
+        collection_ids: data.collection_ids ?? editingPlace.collection_ids ?? [],
       }
       const updated = places.map((p) => (p.id === updatedPlace.id ? updatedPlace : p))
       saveLocalPlaces(updated)
@@ -292,6 +369,101 @@ export default function SecondMindMapApp() {
     if (selectedPlace?.id === id) setSelectedPlace(updated)
   }
 
+  // ─── CRUD Collections ────────────────────────────────────────────────────
+  const handleCreateCollection = async (data: CollectionInsert) => {
+    if (isDemoUser || !isConfigured) {
+      const newCol: Collection = {
+        ...data,
+        id: 'col-' + Date.now(),
+        user_id: user?.id ?? 'demo-user',
+        created_at: new Date().toISOString(),
+      }
+      saveLocalCollections([newCol, ...collections])
+      return
+    }
+
+    const created = await createCollection(data)
+    setCollections((prev) => [created, ...prev])
+  }
+
+  const handleUpdateCollection = async (id: string, data: CollectionInsert) => {
+    if (isDemoUser || !isConfigured) {
+      const updated = collections.map((c) => (c.id === id ? { ...c, ...data } : c))
+      saveLocalCollections(updated)
+      return
+    }
+
+    const updated = await updateCollection(id, data)
+    setCollections((prev) => prev.map((c) => (c.id === id ? updated : c)))
+  }
+
+  const handleDeleteCollection = async (id: string) => {
+    if (isDemoUser || !isConfigured) {
+      const updatedCols = collections.filter((c) => c.id !== id)
+      saveLocalCollections(updatedCols)
+      const updatedPlaces = places.map((p) => ({
+        ...p,
+        collection_ids: (p.collection_ids ?? []).filter((cid) => cid !== id),
+      }))
+      saveLocalPlaces(updatedPlaces)
+      setSelectedCollectionIds((prev) => prev.filter((cid) => cid !== id))
+      return
+    }
+
+    await deleteCollection(id)
+    setCollections((prev) => prev.filter((c) => c.id !== id))
+    setPlaces((prev) =>
+      prev.map((p) => ({
+        ...p,
+        collection_ids: (p.collection_ids ?? []).filter((cid) => cid !== id),
+      }))
+    )
+    setSelectedCollectionIds((prev) => prev.filter((cid) => cid !== id))
+  }
+
+  const handleTogglePlaceCollection = async (
+    placeId: string,
+    collectionId: string,
+    shouldAssign: boolean
+  ) => {
+    const updatePlaceCollectionIds = (targetPlaces: Place[]) =>
+      targetPlaces.map((p) => {
+        if (p.id !== placeId) return p
+        const current = p.collection_ids ?? []
+        const updatedIds = shouldAssign
+          ? Array.from(new Set([...current, collectionId]))
+          : current.filter((id) => id !== collectionId)
+        return { ...p, collection_ids: updatedIds }
+      })
+
+    const updated = updatePlaceCollectionIds(places)
+    if (isDemoUser || !isConfigured) {
+      saveLocalPlaces(updated)
+      if (selectedPlace?.id === placeId) {
+        const found = updated.find((p) => p.id === placeId)
+        if (found) setSelectedPlace(found)
+      }
+      return
+    }
+
+    setPlaces(updated)
+    if (selectedPlace?.id === placeId) {
+      const found = updated.find((p) => p.id === placeId)
+      if (found) setSelectedPlace(found)
+    }
+    await togglePlaceCollection(placeId, collectionId, shouldAssign)
+  }
+
+  const handleToggleCollectionFilter = (id: string) => {
+    setSelectedCollectionIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  const handleClearCollectionFilters = () => {
+    setSelectedCollectionIds([])
+  }
+
   // ─── JSON Import ──────────────────────────────────────────────────────────
   const handleImport = async (items: Partial<Place>[]) => {
     if (isDemoUser || !isConfigured) {
@@ -306,6 +478,7 @@ export default function SecondMindMapApp() {
         notes_markdown: item.notes_markdown ?? '',
         metadata: item.metadata ?? {},
         created_at: new Date().toISOString(),
+        collection_ids: item.collection_ids ?? [],
       }))
       const updated = [...newItems, ...places]
       saveLocalPlaces(updated)
@@ -321,6 +494,7 @@ export default function SecondMindMapApp() {
         price_level: item.price_level ?? 'free',
         notes_markdown: item.notes_markdown ?? '',
         metadata: item.metadata ?? {},
+        collection_ids: item.collection_ids ?? [],
       })
       setPlaces((prev) => [created, ...prev])
     }
@@ -408,6 +582,8 @@ export default function SecondMindMapApp() {
             initialLat={pendingMarker?.lat}
             initialLng={pendingMarker?.lng}
             editingPlace={editingPlace}
+            collections={collections}
+            onOpenManageCollections={() => setShowCollectionModal(true)}
             onSubmit={editingPlace ? handleUpdatePlace : handleCreatePlace}
             onCancel={closePanel}
             onPickLocationOnMap={() => {
@@ -422,6 +598,7 @@ export default function SecondMindMapApp() {
       return (
         <PlaceDetail
           place={selectedPlace}
+          collections={collections}
           onClose={closePanel}
           onEdit={(place) => {
             setEditingPlace(place)
@@ -431,6 +608,7 @@ export default function SecondMindMapApp() {
           onDelete={handleDeletePlace}
           onToggleVisited={handleToggleVisited}
           onExpandNotes={(content, title) => setMarkdownModal({ content, title })}
+          onToggleCollectionAssignment={handleTogglePlaceCollection}
         />
       )
     }
@@ -438,11 +616,18 @@ export default function SecondMindMapApp() {
     // List mode (default)
     return (
       <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            Índice ({filteredPlaces.length})
-          </h3>
-        </div>
+        {/* Inline collection filters in sidebar for fast access */}
+        {collections.length > 0 && (
+          <CollectionFilterBar
+            collections={collections}
+            places={places}
+            selectedCollectionIds={selectedCollectionIds}
+            onToggleCollectionFilter={handleToggleCollectionFilter}
+            onClearFilters={handleClearCollectionFilters}
+            onOpenManageModal={() => setShowCollectionModal(true)}
+            inline={true}
+          />
+        )}
         {loadingPlaces ? (
           <div className="flex justify-center py-8">
             <Globe size={20} className="animate-spin text-muted" />
@@ -450,34 +635,59 @@ export default function SecondMindMapApp() {
         ) : filteredPlaces.length === 0 ? (
           <div className="text-center py-8">
             <p className="empty-page">
-              {searchQuery ? 'Sin resultados' : 'Toca el mapa para añadir un lugar'}
+              {searchQuery || selectedCollectionIds.length > 0
+                ? 'Sin resultados para los filtros seleccionados'
+                : 'Toca el mapa para añadir un lugar'}
             </p>
           </div>
         ) : (
-          filteredPlaces.map((place) => (
-            <button
-              key={place.id}
-              className="index-row"
-              data-active={selectedPlace?.id === place.id}
-              onClick={() => handleSelectPlace(place)}
-            >
-              <span className="index-row-title">{place.name}</span>
-              <span className="index-row-meta">
-                <span className="price-mark">
-                  <span className="price-dot" style={{ color: PRICE_VARS[place.price_level] ?? 'var(--accent)' }} />
-                  {place.price_level === 'free' ? 'Gratis' : place.price_level}
+          filteredPlaces.map((place) => {
+            const placeCols = collections.filter((c) =>
+              place.collection_ids?.includes(c.id)
+            )
+
+            return (
+              <button
+                key={place.id}
+                className="index-row"
+                data-active={selectedPlace?.id === place.id}
+                onClick={() => handleSelectPlace(place)}
+              >
+                <span className="index-row-title">{place.name}</span>
+                <span className="index-row-meta">
+                  <span className="price-mark">
+                    <span className="price-dot" style={{ color: PRICE_VARS[place.price_level] ?? 'var(--accent)' }} />
+                    {place.price_level === 'free' ? 'Gratis' : place.price_level}
+                  </span>
+                  {place.is_visited && (
+                    <span className="stamp" style={{ fontSize: '0.85rem' }}>Visitado</span>
+                  )}
                 </span>
-                {place.is_visited && (
-                  <span className="stamp" style={{ fontSize: '0.85rem' }}>Visitado</span>
+
+                {/* Thematic collection tags on list card */}
+                {placeCols.length > 0 && (
+                  <span className="flex flex-wrap gap-1 mt-1">
+                    {placeCols.map((c) => (
+                      <span
+                        key={c.id}
+                        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full text-white shadow-sm"
+                        style={{ backgroundColor: c.color }}
+                      >
+                        <CollectionIcon name={c.icon} size={9} />
+                        <span>{c.name}</span>
+                      </span>
+                    ))}
+                  </span>
                 )}
-              </span>
-              {place.notes_markdown && (
-                <span className="index-row-snippet">
-                  {place.notes_markdown.replace(/[#*`]/g, '').slice(0, 60)}...
-                </span>
-              )}
-            </button>
-          ))
+
+                {place.notes_markdown && (
+                  <span className="index-row-snippet">
+                    {place.notes_markdown.replace(/[#*`]/g, '').slice(0, 60)}...
+                  </span>
+                )}
+              </button>
+            )
+          })
         )}
       </div>
     )
@@ -485,21 +695,7 @@ export default function SecondMindMapApp() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-base)' }}>
-      {/* ── Map ─────────────────────────────────────────────────────────── */}
-      <div
-        className="map-wrapper"
-        style={{ position: 'absolute', inset: 0, top: 56, transition: 'right 0.3s ease' }}
-      >
-        <MapView
-          places={places}
-          selectedPlaceId={selectedPlace?.id ?? null}
-          onSelectPlace={handleSelectPlace}
-          onMapClick={handleMapClick}
-          pendingMarker={pendingMarker}
-        />
-      </div>
-
-      {/* ── Top Bar ─────────────────────────────────────────────────────── */}
+      {/* ── Top Bar (Notebook cover strip across the top) ────────────────── */}
       <header className="topbar glass-strong">
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -561,6 +757,14 @@ export default function SecondMindMapApp() {
         {/* Actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
+            className="btn btn-ghost btn-sm flex items-center gap-1 text-xs"
+            onClick={() => setShowCollectionModal(true)}
+            title="Gestionar colecciones temáticas"
+          >
+            <Bookmark size={14} style={{ color: 'var(--color-oxblood)' }} />
+            <span className="hidden md:inline">Listas</span>
+          </button>
+          <button
             id="json-modal-button"
             className="btn btn-ghost btn-sm btn-icon"
             onClick={() => setShowJsonModal(true)}
@@ -591,11 +795,42 @@ export default function SecondMindMapApp() {
         </div>
       </header>
 
+      {/* ── Collection Filter Bar (Thematic Tag Ribbon above map) ────────── */}
+      <CollectionFilterBar
+        collections={collections}
+        places={places}
+        selectedCollectionIds={selectedCollectionIds}
+        onToggleCollectionFilter={handleToggleCollectionFilter}
+        onClearFilters={handleClearCollectionFilters}
+        onOpenManageModal={() => setShowCollectionModal(true)}
+      />
+
+      {/* ── Map ─────────────────────────────────────────────────────────── */}
+      <div
+        className="map-wrapper"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          top: 100,
+          transition: 'right 0.3s ease',
+        }}
+      >
+        <MapView
+          places={filteredPlaces}
+          collections={collections}
+          selectedCollectionIds={selectedCollectionIds}
+          selectedPlaceId={selectedPlace?.id ?? null}
+          onSelectPlace={handleSelectPlace}
+          onMapClick={handleMapClick}
+          pendingMarker={pendingMarker}
+        />
+      </div>
+
       {/* ── Map Location Picker Banner ──────────────────────────────────── */}
       {isPickingLocation && (
         <aside
           aria-label="Seleccionar ubicación en el mapa"
-          className="fixed top-18 sm:top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded shadow-lg border border-[var(--border-bright)] bg-[var(--bg-base)] animate-fadeIn max-w-[92vw]"
+          className="fixed top-28 sm:top-32 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 rounded shadow-lg border border-[var(--border-bright)] bg-[var(--bg-base)] animate-fadeIn max-w-[92vw]"
           style={{
             boxShadow: '0 4px 16px rgba(43, 33, 24, 0.2)',
           }}
@@ -623,7 +858,10 @@ export default function SecondMindMapApp() {
       {/* ── Desktop Sidebar ─────────────────────────────────────────────── */}
       <aside
         className="sidebar glass"
-        style={{ top: 56, transform: isPickingLocation ? 'translateX(100%)' : 'none' }}
+        style={{
+          top: 56,
+          transform: isPickingLocation ? 'translateX(100%)' : 'none',
+        }}
       >
         <div className="p-4">
           {/* Sidebar list header */}
@@ -690,7 +928,7 @@ export default function SecondMindMapApp() {
           <span className="text-sm" style={{ fontFamily: 'var(--font-display-stack)', color: 'var(--text-primary)' }}>
             {panelMode === 'detail' && selectedPlace
               ? selectedPlace.name
-              : `${places.length} entradas`}
+              : `${filteredPlaces.length} entradas`}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -723,6 +961,17 @@ export default function SecondMindMapApp() {
           <div key={panelMode} className="page-turn">{renderPanel()}</div>
         </div>
       </div>
+
+      {/* ── Collection Management Modal ──────────────────────────────────── */}
+      <CollectionModal
+        isOpen={showCollectionModal}
+        collections={collections}
+        places={places}
+        onClose={() => setShowCollectionModal(false)}
+        onCreateCollection={handleCreateCollection}
+        onUpdateCollection={handleUpdateCollection}
+        onDeleteCollection={handleDeleteCollection}
+      />
 
       {/* ── JSON Modal ───────────────────────────────────────────────────── */}
       {showJsonModal && (

@@ -11,12 +11,15 @@ import {
   Maximize2,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Bookmark,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { Place } from '@/lib/types'
+import type { Place, Collection } from '@/lib/types'
 import { getPopulatedSections } from '@/lib/markdown-sections'
 import { SectionIcon } from './notebook/SectionIcon'
+import { CollectionIcon } from './notebook/CollectionIcon'
 
 const PRICE_LABELS: Record<string, string> = {
   free: 'Gratis',
@@ -37,24 +40,36 @@ const PRICE_COLORS: Record<string, string> = {
 
 interface PlaceDetailProps {
   place: Place
+  collections?: Collection[]
   onClose: () => void
   onEdit: (place: Place) => void
   onDelete: (id: string) => void
   onToggleVisited: (id: string, current: boolean) => void
   onExpandNotes: (notes: string, title: string) => void
+  onToggleCollectionAssignment?: (placeId: string, collectionId: string, shouldAssign: boolean) => void
 }
 
 export default function PlaceDetail({
   place,
+  collections = [],
   onClose,
   onEdit,
   onDelete,
   onToggleVisited,
   onExpandNotes,
+  onToggleCollectionAssignment,
 }: PlaceDetailProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [activePageIndex, setActivePageIndex] = useState(0)
+  const [showAddTagPopover, setShowAddTagPopover] = useState(false)
   const priceColor = PRICE_COLORS[place.price_level] ?? 'var(--accent)'
+
+  const assignedCollections = collections.filter((c) =>
+    place.collection_ids?.includes(c.id)
+  )
+  const unassignedCollections = collections.filter(
+    (c) => !place.collection_ids?.includes(c.id)
+  )
 
   // Parse populated sections from the markdown
   const populatedSections = useMemo(
@@ -116,6 +131,96 @@ export default function PlaceDetail({
           </span>
         </span>
       </div>
+
+      {/* Thematic Collections tags & quick-add popover */}
+      {(assignedCollections.length > 0 || (onToggleCollectionAssignment && collections.length > 0)) && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          {assignedCollections.map((col) => (
+            <span
+              key={col.id}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs text-white shadow-sm"
+              style={{
+                backgroundColor: col.color,
+                fontFamily: 'var(--font-book)',
+              }}
+            >
+              <CollectionIcon name={col.icon} size={11} />
+              <span>{col.name}</span>
+              {onToggleCollectionAssignment && (
+                <button
+                  type="button"
+                  onClick={() => onToggleCollectionAssignment(place.id, col.id, false)}
+                  className="ml-0.5 hover:opacity-75 rounded-full p-0.5"
+                  title={`Quitar de ${col.name}`}
+                  aria-label={`Quitar de ${col.name}`}
+                >
+                  <X size={10} />
+                </button>
+              )}
+            </span>
+          ))}
+
+          {/* Quick-add to collection */}
+          {onToggleCollectionAssignment && unassignedCollections.length > 0 && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowAddTagPopover(!showAddTagPopover)}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border border-dashed transition-colors hover:bg-black/5"
+                style={{
+                  borderColor: 'rgba(107, 90, 68, 0.4)',
+                  color: 'var(--color-ink-faded)',
+                  fontFamily: 'var(--font-book)',
+                }}
+              >
+                <Plus size={11} style={{ color: 'var(--color-oxblood)' }} />
+                <span>Añadir a lista</span>
+              </button>
+
+              {showAddTagPopover && (
+                <div
+                  className="absolute left-0 mt-1 z-30 py-1.5 px-1 rounded shadow-xl border w-48 flex flex-col gap-1 max-h-48 overflow-y-auto"
+                  style={{
+                    backgroundColor: '#f3e9d2',
+                    borderColor: 'var(--border-bright)',
+                  }}
+                >
+                  <div
+                    className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider"
+                    style={{
+                      color: 'var(--color-ink-faded)',
+                      fontFamily: 'var(--font-book)',
+                      fontVariant: 'small-caps',
+                    }}
+                  >
+                    Asignar a colección:
+                  </div>
+                  {unassignedCollections.map((col) => (
+                    <button
+                      key={col.id}
+                      type="button"
+                      onClick={() => {
+                        onToggleCollectionAssignment(place.id, col.id, true)
+                        setShowAddTagPopover(false)
+                      }}
+                      className="flex items-center gap-2 px-2 py-1 rounded text-xs hover:bg-black/5 text-left transition-colors"
+                      style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-book)' }}
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-white shrink-0"
+                        style={{ backgroundColor: col.color }}
+                      >
+                        <CollectionIcon name={col.icon} size={10} />
+                      </span>
+                      <span className="truncate">{col.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <hr className="divider" />
 

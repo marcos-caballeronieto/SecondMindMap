@@ -5,7 +5,8 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import Map, { Marker, NavigationControl, type MapRef, type MapMouseEvent } from 'react-map-gl/maplibre'
 import { Check, MapPin, Plus } from 'lucide-react'
-import type { Place } from '@/lib/types'
+import type { Place, Collection } from '@/lib/types'
+import { CollectionIcon } from './notebook/CollectionIcon'
 
 // Explicitly set worker URL for MapLibre GL v6+
 if (typeof window !== 'undefined') {
@@ -17,6 +18,8 @@ const MAP_STYLE = '/map/paper-ink.json'
 
 interface MapViewProps {
   places: Place[]
+  collections?: Collection[]
+  selectedCollectionIds?: string[]
   selectedPlaceId: string | null
   onSelectPlace: (place: Place) => void
   onMapClick: (lat: number, lng: number) => void
@@ -34,6 +37,8 @@ const PRICE_COLORS: Record<string, string> = {
 
 export default function MapView({
   places,
+  collections = [],
+  selectedCollectionIds = [],
   selectedPlaceId,
   onSelectPlace,
   onMapClick,
@@ -88,8 +93,28 @@ export default function MapView({
 
       {/* Existing places */}
       {places.map((place) => {
-        const color = PRICE_COLORS[place.price_level] ?? 'var(--accent)'
         const isActive = place.id === selectedPlaceId
+        const placeCollectionIds = place.collection_ids ?? []
+
+        // Determine active collection styling if place belongs to any collection
+        let matchedCollection: Collection | undefined = undefined
+        if (placeCollectionIds.length > 0 && collections.length > 0) {
+          // Prioritize selected active filter collection if present
+          if (selectedCollectionIds.length > 0) {
+            matchedCollection = collections.find(
+              (c) => selectedCollectionIds.includes(c.id) && placeCollectionIds.includes(c.id)
+            )
+          }
+          // Otherwise pick the first matching collection
+          if (!matchedCollection) {
+            matchedCollection = collections.find((c) => placeCollectionIds.includes(c.id))
+          }
+        }
+
+        const markerColor = matchedCollection
+          ? matchedCollection.color
+          : PRICE_COLORS[place.price_level] ?? 'var(--accent)'
+
         return (
           <Marker
             key={place.id}
@@ -103,12 +128,18 @@ export default function MapView({
           >
             <div
               className="map-pin-marker"
-              style={{ background: color }}
+              style={{ background: markerColor }}
               data-active={isActive}
-              aria-label={`${place.name}${place.is_visited ? ', visitado' : ''}`}
+              aria-label={`${place.name}${place.is_visited ? ', visitado' : ''}${
+                matchedCollection ? ` (${matchedCollection.name})` : ''
+              }`}
             >
               <span className="pin-inner">
-                <MapPin size={16} />
+                {matchedCollection ? (
+                  <CollectionIcon name={matchedCollection.icon} size={15} />
+                ) : (
+                  <MapPin size={16} />
+                )}
               </span>
               {place.is_visited && (
                 <span className="map-pin-stamp" aria-hidden="true">

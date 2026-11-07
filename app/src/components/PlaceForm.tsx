@@ -13,9 +13,11 @@ import {
   ChevronRight,
   Layers,
   ListFilter,
+  Bookmark,
+  Plus,
 } from 'lucide-react'
 import { parseGoogleMapsUrl } from '@/lib/actions/parse-maps-url'
-import type { Place, PlaceInsert, PriceLevel, SectionKey, SectionMap } from '@/lib/types'
+import type { Place, PlaceInsert, PriceLevel, SectionKey, SectionMap, Collection } from '@/lib/types'
 import {
   SECTION_CATALOG,
   SECTION_KEYS,
@@ -25,11 +27,14 @@ import {
 } from '@/lib/markdown-sections'
 import SectionCheckbox from './notebook/SectionCheckbox'
 import { SectionIcon } from './notebook/SectionIcon'
+import { CollectionIcon } from './notebook/CollectionIcon'
 
 interface PlaceFormProps {
   initialLat?: number
   initialLng?: number
   editingPlace?: Place | null
+  collections?: Collection[]
+  onOpenManageCollections?: () => void
   onSubmit: (data: PlaceInsert) => Promise<void>
   onCancel: () => void
   onPickLocationOnMap?: () => void
@@ -39,6 +44,8 @@ export default function PlaceForm({
   initialLat,
   initialLng,
   editingPlace,
+  collections = [],
+  onOpenManageCollections,
   onSubmit,
   onCancel,
   onPickLocationOnMap,
@@ -47,6 +54,17 @@ export default function PlaceForm({
   const [mapsUrl, setMapsUrl] = useState('')
   const [parsingUrl, setParsingUrl] = useState(false)
   const [parseError, setParseError] = useState('')
+
+  // Collections selection
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
+    editingPlace?.collection_ids ?? []
+  )
+
+  const handleToggleCollection = (id: string) => {
+    setSelectedCollectionIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
 
   // Raw mode toggle: allows switching between modular sections and raw markdown
   const [rawMarkdownMode, setRawMarkdownMode] = useState(false)
@@ -182,6 +200,7 @@ export default function PlaceForm({
       await onSubmit({
         ...form,
         notes_markdown: finalMarkdown,
+        collection_ids: selectedCollectionIds,
       })
     } finally {
       setLoading(false)
@@ -218,8 +237,6 @@ export default function PlaceForm({
         </div>
         {parseError && <p className="text-xs" role="alert" style={{ color: 'var(--danger)' }}>{parseError}</p>}
       </div>
-
-      <hr className="divider" />
 
       {/* Name */}
       <div className="form-group">
@@ -320,6 +337,90 @@ export default function PlaceForm({
             Visitado
           </label>
         </div>
+      </div>
+
+      {/* Thematic Collections */}
+      <div className="form-group">
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="label mb-0 flex items-center gap-1.5">
+            <Bookmark size={13} style={{ color: 'var(--color-oxblood)' }} />
+            <span>COLECCIONES TEMÁTICAS</span>
+          </label>
+          {onOpenManageCollections && (
+            <button
+              type="button"
+              onClick={onOpenManageCollections}
+              className="text-xs hover:underline flex items-center gap-1"
+              style={{
+                fontFamily: 'var(--font-book)',
+                color: 'var(--color-oxblood)',
+              }}
+            >
+              <Plus size={12} />
+              <span>Nueva lista</span>
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] text-[var(--text-secondary)] italic mb-2">
+          Asigna este lugar a una o más listas temáticas para filtrar el mapa.
+        </p>
+
+        {collections.length === 0 ? (
+          <div
+            className="p-3 text-xs italic rounded border border-dashed flex items-center justify-between"
+            style={{
+              borderColor: 'rgba(107, 90, 68, 0.3)',
+              color: 'var(--color-ink-faded)',
+              backgroundColor: 'rgba(232, 217, 181, 0.2)',
+            }}
+          >
+            <span>No hay colecciones creadas todavía.</span>
+            {onOpenManageCollections && (
+              <button
+                type="button"
+                onClick={onOpenManageCollections}
+                className="underline font-medium not-italic ml-2"
+                style={{ color: 'var(--color-oxblood)' }}
+              >
+                Crear una ahora
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {collections.map((col) => {
+              const isSelected = selectedCollectionIds.includes(col.id)
+              return (
+                <button
+                  key={col.id}
+                  type="button"
+                  onClick={() => handleToggleCollection(col.id)}
+                  className="px-2.5 py-1 text-xs rounded-full border transition-all flex items-center gap-1.5 shadow-sm"
+                  style={{
+                    fontFamily: 'var(--font-book)',
+                    backgroundColor: isSelected ? col.color : 'transparent',
+                    color: isSelected ? '#ffffff' : 'var(--color-ink)',
+                    borderColor: isSelected ? col.color : 'rgba(107, 90, 68, 0.35)',
+                    fontWeight: isSelected ? 600 : 400,
+                  }}
+                  aria-pressed={isSelected}
+                >
+                  <span
+                    className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : col.color,
+                      color: '#ffffff',
+                    }}
+                  >
+                    <CollectionIcon name={col.icon} size={10} />
+                  </span>
+                  <span>{col.name}</span>
+                  {isSelected && <Check size={12} strokeWidth={3} className="ml-0.5" />}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <hr className="divider" />

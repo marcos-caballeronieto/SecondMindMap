@@ -73,11 +73,11 @@ This document centralizes the development status of SecondMindMap, dividing feat
 
 *Objective: Provide places with greater content depth, thematic list categorization, and image support.*
 
-- [ ] **Collections & Tagging System**
-  - [ ] Implement `collections` table and `place_collections` pivot table.
-  - [ ] UI for creating thematic lists (e.g., *"Rome Coffee Tour"*, *"Scottish Castles"*).
-  - [ ] Custom color and icon selector per collection.
-  - [ ] Map filtering by one or multiple simultaneous collections.
+- [x] **Collections & Tagging System**
+  - [x] Implement `collections` table and `place_collections` pivot table.
+  - [x] UI for creating thematic lists (e.g., *"Rome Coffee Tour"*, *"Scottish Castles"*).
+  - [x] Custom color and icon selector per collection.
+  - [x] Map filtering by one or multiple simultaneous collections.
 - [ ] **Advanced PRD Fields**
 - [x] **Modular Markdown Notes System (Specification in [`specs/features/modular_note_system.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/modular_note_system.md))**
   - [x] 9 optional categories toggled via checkboxes (General Information, History, Curiosities, What to Look For, Art, Food, Practical Tips, Photos, Field Notes). Includes a minimal "General Information" option for locations with limited information.
