@@ -116,3 +116,37 @@ create policy "Users can delete their own place_collections"
 create index if not exists collections_user_id_idx on collections(user_id);
 create index if not exists place_collections_place_id_idx on place_collections(place_id);
 create index if not exists place_collections_collection_id_idx on place_collections(collection_id);
+
+-- ── Place Relations table ─────────────────────────────────────────────────
+create table if not exists place_relations (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid references auth.users(id) on delete cascade not null,
+  place_id         uuid references places(id) on delete cascade not null,
+  related_place_id uuid references places(id) on delete cascade not null,
+  relation_type    varchar(50) not null default 'related' check (relation_type in ('contains', 'nearby', 'related')),
+  created_at       timestamptz default now(),
+  constraint unique_place_relation unique (place_id, related_place_id),
+  constraint no_self_relation check (place_id <> related_place_id)
+);
+
+alter table place_relations enable row level security;
+
+create policy "Users can view their own place_relations"
+  on place_relations for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own place_relations"
+  on place_relations for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own place_relations"
+  on place_relations for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own place_relations"
+  on place_relations for delete
+  using (auth.uid() = user_id);
+
+create index if not exists place_relations_user_id_idx on place_relations(user_id);
+create index if not exists place_relations_place_id_idx on place_relations(place_id);
+create index if not exists place_relations_related_place_id_idx on place_relations(related_place_id);

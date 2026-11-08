@@ -14,7 +14,13 @@ import {
   deleteCollection,
   togglePlaceCollection,
 } from '@/lib/actions/collections'
-import type { Place, PlaceInsert, Collection, CollectionInsert } from '@/lib/types'
+import {
+  getPlaceRelations,
+  createPlaceRelation,
+  deletePlaceRelation,
+  syncPlaceRelations,
+} from '@/lib/actions/relations'
+import type { Place, PlaceInsert, Collection, CollectionInsert, PlaceRelation, RelationType } from '@/lib/types'
 import PlaceDetail from '@/components/PlaceDetail'
 import PlaceForm from '@/components/PlaceForm'
 import JsonModal from '@/components/JsonModal'
@@ -112,6 +118,51 @@ const INITIAL_DEMO_PLACES: Place[] = [
     created_at: new Date().toISOString(),
     collection_ids: ['demo-col-1', 'demo-col-2'],
   },
+  {
+    id: 'demo-4',
+    user_id: 'demo-user',
+    name: 'Piazza Navona',
+    latitude: 41.8992,
+    longitude: 12.4731,
+    is_visited: true,
+    price_level: 'free',
+    notes_markdown:
+      '## Gran Plaza Barroca de Roma\n\nErigida sobre el antiguo Estadio de Domiciano del siglo I, conserva su forma elíptica.\n\n* En su centro se erige la célebre Fuente de los Cuatro Ríos de Bernini.\n* Frente a ella se alza la iglesia de Sant Agnese in Agone de Borromini.',
+    metadata: {},
+    created_at: new Date().toISOString(),
+    collection_ids: ['demo-col-2'],
+  },
+  {
+    id: 'demo-5',
+    user_id: 'demo-user',
+    name: 'Fuente de los Cuatro Ríos',
+    latitude: 41.8989,
+    longitude: 12.4731,
+    is_visited: true,
+    price_level: 'free',
+    notes_markdown:
+      '## Obra Maestra Escultórica Barroca\n\nDiseñada por Gian Lorenzo Bernini en 1651 por encargo del papa Inocencio X.\n\n* **Cuatro continentes:** Danubio, Nilo, Ganges y Río de la Plata.\n* **Obelisco central:** Obelisco romano con jeroglíficos tallados.',
+    metadata: {},
+    created_at: new Date().toISOString(),
+    collection_ids: ['demo-col-2'],
+  },
+]
+
+const INITIAL_DEMO_RELATIONS: PlaceRelation[] = [
+  {
+    id: 'demo-rel-1',
+    place_id: 'demo-4',
+    related_place_id: 'demo-5',
+    relation_type: 'contains',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-rel-2',
+    place_id: 'demo-4',
+    related_place_id: 'demo-2',
+    relation_type: 'nearby',
+    created_at: new Date().toISOString(),
+  },
 ]
 
 export default function SecondMindMapApp() {
@@ -168,6 +219,10 @@ export default function SecondMindMapApp() {
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([])
   const [showCollectionModal, setShowCollectionModal] = useState(false)
 
+  // ─── Relations & Navigation History State ────────────────────────────────
+  const [relations, setRelations] = useState<PlaceRelation[]>([])
+  const [historyStack, setHistoryStack] = useState<Place[]>([])
+
   const saveLocalPlaces = (newPlaces: Place[]) => {
     setPlaces(newPlaces)
     if (typeof window !== 'undefined') {
@@ -179,6 +234,13 @@ export default function SecondMindMapApp() {
     setCollections(newCols)
     if (typeof window !== 'undefined') {
       localStorage.setItem('secondmindmap_collections', JSON.stringify(newCols))
+    }
+  }
+
+  const saveLocalRelations = (newRels: PlaceRelation[]) => {
+    setRelations(newRels)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('secondmindmap_relations', JSON.stringify(newRels))
     }
   }
 
@@ -211,18 +273,32 @@ export default function SecondMindMapApp() {
           setCollections(INITIAL_DEMO_COLLECTIONS)
           localStorage.setItem('secondmindmap_collections', JSON.stringify(INITIAL_DEMO_COLLECTIONS))
         }
+
+        const cachedRels = localStorage.getItem('secondmindmap_relations')
+        if (cachedRels) {
+          try {
+            setRelations(JSON.parse(cachedRels))
+          } catch {
+            setRelations(INITIAL_DEMO_RELATIONS)
+          }
+        } else {
+          setRelations(INITIAL_DEMO_RELATIONS)
+          localStorage.setItem('secondmindmap_relations', JSON.stringify(INITIAL_DEMO_RELATIONS))
+        }
       }
       return
     }
 
     setLoadingPlaces(true)
     try {
-      const [placesData, colsData] = await Promise.all([
+      const [placesData, colsData, relsData] = await Promise.all([
         getPlaces(),
         getCollections(),
+        getPlaceRelations(),
       ])
       setPlaces(placesData)
       setCollections(colsData)
+      setRelations(relsData)
     } catch {
       // Ignore network errors
     } finally {
@@ -280,12 +356,106 @@ export default function SecondMindMapApp() {
   }, [isPickingLocation, panelMode])
 
   const handleSelectPlace = useCallback((place: Place) => {
+    setHistoryStack([])
     setSelectedPlace(place)
     setPanelMode('detail')
     setSheetHeight('half')
     setPendingMarker(null)
     setIsSidebarOpen(true)
   }, [])
+
+  // ─── Connected Places Navigation ─────────────────────────────────────────
+  const handleNavigateToPlace = useCallback((targetPlace: Place) => {
+    setSelectedPlace((current) => {
+      if (current && current.id !== targetPlace.id) {
+        setHistoryStack((prev) => [...prev, current])
+      }
+      return targetPlace
+    })
+    setPanelMode('detail')
+    setSheetHeight('half')
+    setPendingMarker(null)
+    setIsSidebarOpen(true)
+  }, [])
+
+  const handleBackHistory = useCallback(() => {
+    setHistoryStack((prev) => {
+      if (prev.length === 0) return prev
+      const nextStack = [...prev]
+      const prevPlace = nextStack.pop()!
+      setSelectedPlace(prevPlace)
+      setPanelMode('detail')
+      setSheetHeight('half')
+      return nextStack
+    })
+  }, [])
+
+  // ─── Place Relations CRUD ────────────────────────────────────────────────
+  const handleAddRelation = async (
+    targetPlaceId: string,
+    relationType: RelationType
+  ) => {
+    if (!selectedPlace) return
+    const currentPlaceId = selectedPlace.id
+
+    const exists = relations.some(
+      (r) =>
+        (r.place_id === currentPlaceId && r.related_place_id === targetPlaceId) ||
+        (r.place_id === targetPlaceId && r.related_place_id === currentPlaceId)
+    )
+    if (exists) return
+
+    const newRel: PlaceRelation = {
+      id: 'rel-' + Date.now(),
+      place_id: currentPlaceId,
+      related_place_id: targetPlaceId,
+      relation_type: relationType,
+      created_at: new Date().toISOString(),
+    }
+
+    if (isDemoUser || !isConfigured) {
+      saveLocalRelations([...relations, newRel])
+      return
+    }
+
+    try {
+      const created = await createPlaceRelation({
+        place_id: currentPlaceId,
+        related_place_id: targetPlaceId,
+        relation_type: relationType,
+      })
+      if (created) {
+        setRelations((prev) => [...prev, created])
+      }
+    } catch (err) {
+      console.error('Error creating relation:', err)
+    }
+  }
+
+  const handleRemoveRelation = async (relatedPlaceId: string) => {
+    if (!selectedPlace) return
+    const currentPlaceId = selectedPlace.id
+
+    const updated = relations.filter(
+      (r) =>
+        !(
+          (r.place_id === currentPlaceId && r.related_place_id === relatedPlaceId) ||
+          (r.place_id === relatedPlaceId && r.related_place_id === currentPlaceId)
+        )
+    )
+
+    if (isDemoUser || !isConfigured) {
+      saveLocalRelations(updated)
+      return
+    }
+
+    setRelations(updated)
+    try {
+      await deletePlaceRelation(currentPlaceId, relatedPlaceId)
+    } catch (err) {
+      console.error('Error removing relation:', err)
+    }
+  }
 
   // ─── CRUD Places ─────────────────────────────────────────────────────────
   const handleCreatePlace = async (data: PlaceInsert) => {
@@ -299,19 +469,44 @@ export default function SecondMindMapApp() {
       }
       const updated = [newPlace, ...places]
       saveLocalPlaces(updated)
+
+      if (data.relations && data.relations.length > 0) {
+        const newRels: PlaceRelation[] = data.relations.map((r, idx) => ({
+          id: 'rel-' + Date.now() + '-' + idx,
+          place_id: newPlace.id,
+          related_place_id: r.related_place_id,
+          relation_type: r.relation_type,
+          created_at: new Date().toISOString(),
+        }))
+        saveLocalRelations([...relations, ...newRels])
+      }
+
       setPendingMarker(null)
       setSelectedPlace(newPlace)
       setPanelMode('detail')
       setSheetHeight('half')
+      setHistoryStack([])
       return
     }
 
     const created = await createPlace(data)
     setPlaces((prev) => [created, ...prev])
+
+    if (data.relations && data.relations.length > 0) {
+      try {
+        await syncPlaceRelations(created.id, data.relations)
+        const relsData = await getPlaceRelations()
+        setRelations(relsData)
+      } catch (relErr) {
+        console.error('Error syncing relations on create:', relErr)
+      }
+    }
+
     setPendingMarker(null)
     setSelectedPlace(created)
     setPanelMode('detail')
     setSheetHeight('half')
+    setHistoryStack([])
   }
 
   const handleUpdatePlace = async (data: PlaceInsert) => {
@@ -325,6 +520,19 @@ export default function SecondMindMapApp() {
       }
       const updated = places.map((p) => (p.id === updatedPlace.id ? updatedPlace : p))
       saveLocalPlaces(updated)
+
+      if (data.relations !== undefined) {
+        const kept = relations.filter((r) => r.place_id !== editingPlace.id)
+        const newRels: PlaceRelation[] = data.relations.map((r, idx) => ({
+          id: 'rel-' + Date.now() + '-' + idx,
+          place_id: editingPlace.id,
+          related_place_id: r.related_place_id,
+          relation_type: r.relation_type,
+          created_at: new Date().toISOString(),
+        }))
+        saveLocalRelations([...kept, ...newRels])
+      }
+
       setSelectedPlace(updatedPlace)
       setEditingPlace(null)
       setPanelMode('detail')
@@ -334,6 +542,17 @@ export default function SecondMindMapApp() {
 
     const updated = await updatePlace(editingPlace.id, data)
     setPlaces((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+
+    if (data.relations !== undefined) {
+      try {
+        await syncPlaceRelations(editingPlace.id, data.relations)
+        const relsData = await getPlaceRelations()
+        setRelations(relsData)
+      } catch (relErr) {
+        console.error('Error syncing relations on update:', relErr)
+      }
+    }
+
     setSelectedPlace(updated)
     setEditingPlace(null)
     setPanelMode('detail')
@@ -341,20 +560,28 @@ export default function SecondMindMapApp() {
   }
 
   const handleDeletePlace = async (id: string) => {
+    const updatedRels = relations.filter(
+      (r) => r.place_id !== id && r.related_place_id !== id
+    )
+
     if (isDemoUser || !isConfigured) {
       const updated = places.filter((p) => p.id !== id)
       saveLocalPlaces(updated)
+      saveLocalRelations(updatedRels)
       setSelectedPlace(null)
       setPanelMode('list')
       setSheetHeight('half')
+      setHistoryStack([])
       return
     }
 
     await deletePlace(id)
     setPlaces((prev) => prev.filter((p) => p.id !== id))
+    setRelations(updatedRels)
     setSelectedPlace(null)
     setPanelMode('list')
     setSheetHeight('half')
+    setHistoryStack([])
   }
 
   const handleToggleVisited = async (id: string, current: boolean) => {
@@ -539,6 +766,7 @@ export default function SecondMindMapApp() {
     setPendingMarker(null)
     setIsPickingLocation(false)
     setSheetHeight('peek')
+    setHistoryStack([])
   }
 
   // Cancel picking location on Escape key
@@ -585,6 +813,8 @@ export default function SecondMindMapApp() {
             initialLat={pendingMarker?.lat}
             initialLng={pendingMarker?.lng}
             editingPlace={editingPlace}
+            places={places}
+            relations={relations}
             collections={collections}
             onOpenManageCollections={() => setShowCollectionModal(true)}
             onSubmit={editingPlace ? handleUpdatePlace : handleCreatePlace}
@@ -598,9 +828,14 @@ export default function SecondMindMapApp() {
     }
 
     if (panelMode === 'detail' && selectedPlace) {
+      const previousPlaceName =
+        historyStack.length > 0 ? historyStack[historyStack.length - 1].name : null
+
       return (
         <PlaceDetail
           place={selectedPlace}
+          places={places}
+          relations={relations}
           collections={collections}
           onClose={closePanel}
           onEdit={(place) => {
@@ -612,6 +847,11 @@ export default function SecondMindMapApp() {
           onToggleVisited={handleToggleVisited}
           onExpandNotes={(content, title) => setMarkdownModal({ content, title })}
           onToggleCollectionAssignment={handleTogglePlaceCollection}
+          onNavigateToPlace={handleNavigateToPlace}
+          onAddRelation={handleAddRelation}
+          onRemoveRelation={handleRemoveRelation}
+          onBackHistory={handleBackHistory}
+          previousPlaceName={previousPlaceName}
         />
       )
     }

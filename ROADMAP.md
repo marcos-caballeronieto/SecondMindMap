@@ -78,6 +78,11 @@ This document centralizes the development status of SecondMindMap, dividing feat
   - [x] UI for creating thematic lists (e.g., *"Rome Coffee Tour"*, *"Scottish Castles"*).
   - [x] Custom color and icon selector per collection.
   - [x] Map filtering by one or multiple simultaneous collections.
+- [x] **Place Relations & Connected Locations (`place_relations`)**
+  - [x] Relational schema with flexible types: `contains` (Dentro de / Contiene, e.g. plaza que contiene monumentos), `nearby` (En las inmediaciones), `related` (Relacionado / Ver también).
+  - [x] Interactive navigation in the notebook journal with fly-to map camera and breadcrumb history stack ("← Volver a [Lugar anterior]").
+  - [x] Direct linking/unlinking controls in both place form and place detail view.
+  - [x] Row Level Security (RLS) policies and offline/demo `localStorage` persistence.
 - [ ] **Advanced PRD Fields**
 - [x] **Modular Markdown Notes System (Specification in [`specs/features/modular_note_system.md`](file:///c:/Marcos/programming/Smaller_projects/map_second_brain/SecondMindMap/specs/features/modular_note_system.md))**
   - [x] 9 optional categories toggled via checkboxes (General Information, History, Curiosities, What to Look For, Art, Food, Practical Tips, Photos, Field Notes). Includes a minimal "General Information" option for locations with limited information.

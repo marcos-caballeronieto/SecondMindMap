@@ -17,7 +17,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { parseGoogleMapsUrl } from '@/lib/actions/parse-maps-url'
-import type { Place, PlaceInsert, PriceLevel, SectionKey, SectionMap, Collection } from '@/lib/types'
+import type { Place, PlaceInsert, PriceLevel, SectionKey, SectionMap, Collection, PlaceRelation, RelationType } from '@/lib/types'
 import {
   SECTION_CATALOG,
   SECTION_KEYS,
@@ -33,6 +33,8 @@ interface PlaceFormProps {
   initialLat?: number
   initialLng?: number
   editingPlace?: Place | null
+  places?: Place[]
+  relations?: PlaceRelation[]
   collections?: Collection[]
   onOpenManageCollections?: () => void
   onSubmit: (data: PlaceInsert) => Promise<void>
@@ -44,6 +46,8 @@ export default function PlaceForm({
   initialLat,
   initialLng,
   editingPlace,
+  places = [],
+  relations = [],
   collections = [],
   onOpenManageCollections,
   onSubmit,
@@ -65,6 +69,54 @@ export default function PlaceForm({
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     )
   }
+
+  // Relations state
+  const [formRelations, setFormRelations] = useState<
+    Array<{ related_place_id: string; relation_type: RelationType }>
+  >(() => {
+    if (!editingPlace) return []
+    const initial: Array<{ related_place_id: string; relation_type: RelationType }> = []
+    const seen = new Set<string>()
+    for (const rel of relations) {
+      if (rel.place_id === editingPlace.id && !seen.has(rel.related_place_id)) {
+        seen.add(rel.related_place_id)
+        initial.push({
+          related_place_id: rel.related_place_id,
+          relation_type: rel.relation_type,
+        })
+      } else if (rel.related_place_id === editingPlace.id && !seen.has(rel.place_id)) {
+        seen.add(rel.place_id)
+        initial.push({
+          related_place_id: rel.place_id,
+          relation_type: rel.relation_type,
+        })
+      }
+    }
+    return initial
+  })
+
+  const [newRelPlaceId, setNewRelPlaceId] = useState('')
+  const [newRelType, setNewRelType] = useState<RelationType>('contains')
+
+  const handleAddRelation = () => {
+    if (!newRelPlaceId) return
+    if (formRelations.some((r) => r.related_place_id === newRelPlaceId)) return
+    setFormRelations((prev) => [
+      ...prev,
+      { related_place_id: newRelPlaceId, relation_type: newRelType },
+    ])
+    setNewRelPlaceId('')
+  }
+
+  const handleRemoveRelation = (targetId: string) => {
+    setFormRelations((prev) => prev.filter((r) => r.related_place_id !== targetId))
+  }
+
+  const availablePlacesToConnect = places.filter(
+    (p) =>
+      p.id !== editingPlace?.id &&
+      !formRelations.some((r) => r.related_place_id === p.id)
+  )
 
   // Raw mode toggle: allows switching between modular sections and raw markdown
   const [rawMarkdownMode, setRawMarkdownMode] = useState(false)
@@ -201,6 +253,11 @@ export default function PlaceForm({
         ...form,
         notes_markdown: finalMarkdown,
         collection_ids: selectedCollectionIds,
+        relations: formRelations.map((r) => ({
+          place_id: editingPlace?.id ?? '',
+          related_place_id: r.related_place_id,
+          relation_type: r.relation_type,
+        })),
       })
     } finally {
       setLoading(false)
@@ -420,6 +477,120 @@ export default function PlaceForm({
               )
             })}
           </div>
+        )}
+      </div>
+
+      {/* Connected Places / Relations */}
+      <div className="form-group">
+        <label className="label mb-0 flex items-center gap-1.5">
+          <Link2 size={13} style={{ color: 'var(--color-oxblood)' }} />
+          <span>LUGARES CONECTADOS (RELACIONES)</span>
+        </label>
+        <p className="text-[11px] text-[var(--text-secondary)] italic mb-2">
+          Conecta este lugar con otros del diario (ej. plaza que contiene monumentos, o lugares cercanos).
+        </p>
+
+        {/* Existing relations in form */}
+        {formRelations.length > 0 && (
+          <div className="flex flex-col gap-1.5 mb-2.5">
+            {formRelations.map((r) => {
+              const target = places.find((p) => p.id === r.related_place_id)
+              if (!target) return null
+              const typeLabels: Record<RelationType, string> = {
+                contains: 'Contiene',
+                nearby: 'Inmediaciones',
+                related: 'Relacionado',
+              }
+              return (
+                <div
+                  key={r.related_place_id}
+                  className="flex items-center justify-between p-2 rounded border text-xs"
+                  style={{
+                    backgroundColor: 'var(--color-parchment)',
+                    borderColor: 'rgba(107, 90, 68, 0.25)',
+                    fontFamily: 'var(--font-book)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="px-1.5 py-0.2 rounded text-[10px] text-white"
+                      style={{
+                        backgroundColor:
+                          r.relation_type === 'contains'
+                            ? 'var(--color-oxblood)'
+                            : r.relation_type === 'nearby'
+                              ? 'var(--color-moss)'
+                              : 'var(--color-ochre)',
+                      }}
+                    >
+                      {typeLabels[r.relation_type]}
+                    </span>
+                    <span className="truncate font-medium text-[var(--color-ink)]">{target.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRelation(r.related_place_id)}
+                    className="p-1 hover:text-[var(--danger)] cursor-pointer"
+                    title="Quitar relación"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Add relation inline selector */}
+        {availablePlacesToConnect.length > 0 ? (
+          <div
+            className="p-2.5 rounded border flex flex-col sm:flex-row gap-2 items-center"
+            style={{
+              backgroundColor: 'rgba(232, 217, 181, 0.25)',
+              borderColor: 'rgba(107, 90, 68, 0.3)',
+            }}
+          >
+            <select
+              className="input text-xs py-1 flex-1"
+              value={newRelPlaceId}
+              onChange={(e) => setNewRelPlaceId(e.target.value)}
+            >
+              <option value="">Seleccionar lugar a conectar...</option>
+              {availablePlacesToConnect.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="input text-xs py-1"
+              value={newRelType}
+              onChange={(e) => setNewRelType(e.target.value as RelationType)}
+            >
+              <option value="contains">Contiene</option>
+              <option value="nearby">En las inmediaciones</option>
+              <option value="related">Relacionado</option>
+            </select>
+
+            <button
+              type="button"
+              disabled={!newRelPlaceId}
+              onClick={handleAddRelation}
+              className="btn btn-ghost btn-sm text-xs py-1 px-3 h-auto min-h-[30px] border disabled:opacity-40 shrink-0 cursor-pointer"
+              style={{
+                borderColor: 'var(--color-oxblood)',
+                color: 'var(--color-oxblood)',
+              }}
+            >
+              <Plus size={12} />
+              <span>Conectar</span>
+            </button>
+          </div>
+        ) : (
+          <p className="text-[11px] text-[var(--color-ink-faded)] italic">
+            No hay más lugares disponibles para conectar.
+          </p>
         )}
       </div>
 

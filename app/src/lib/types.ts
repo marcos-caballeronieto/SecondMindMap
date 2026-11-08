@@ -24,6 +24,19 @@ export interface SectionConfig {
 
 export type SectionMap = Partial<Record<SectionKey, string>>
 
+// ─── Place Relations ─────────────────────────────────────────────────────────
+
+export type RelationType = 'contains' | 'nearby' | 'related'
+
+export interface PlaceRelation {
+  id?: string
+  user_id?: string
+  place_id: string
+  related_place_id: string
+  relation_type: RelationType
+  created_at?: string
+}
+
 export interface Place {
   id: string
   user_id: string
@@ -36,10 +49,12 @@ export interface Place {
   metadata: Record<string, unknown>
   created_at: string
   collection_ids?: string[]
+  relations?: PlaceRelation[]
 }
 
-export type PlaceInsert = Omit<Place, 'id' | 'user_id' | 'created_at' | 'collection_ids'> & {
+export type PlaceInsert = Omit<Place, 'id' | 'user_id' | 'created_at' | 'collection_ids' | 'relations'> & {
   collection_ids?: string[]
+  relations?: PlaceRelation[]
 }
 export type PlaceUpdate = Partial<PlaceInsert>
 
