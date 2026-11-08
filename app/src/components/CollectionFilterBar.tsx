@@ -12,6 +12,7 @@ interface CollectionFilterBarProps {
   onClearFilters: () => void
   onOpenManageModal: () => void
   inline?: boolean
+  style?: React.CSSProperties
 }
 
 export default function CollectionFilterBar({
@@ -22,6 +23,7 @@ export default function CollectionFilterBar({
   onClearFilters,
   onOpenManageModal,
   inline = false,
+  style,
 }: CollectionFilterBarProps) {
   const hasActiveFilters = selectedCollectionIds.length > 0
 
@@ -35,6 +37,7 @@ export default function CollectionFilterBar({
       style={{
         backgroundColor: inline ? 'transparent' : '#e8d9b5',
         borderColor: 'var(--border-bright)',
+        ...style,
       }}
     >
       <div

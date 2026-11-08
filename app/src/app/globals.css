@@ -457,11 +457,27 @@
     right: 0;
     bottom: 0;
     width: 420px;
-    z-index: 40;
-    border-left: 3px double var(--border-bright);
+    z-index: 45;
+    background-color: var(--color-parchment);
+    border-left: 1px solid rgba(43, 33, 24, 0.22);
     overflow-y: auto;
-    transition: transform 0.3s ease;
-    background-image: linear-gradient(to right, rgba(43, 33, 24, 0.1), rgba(43, 33, 24, 0) 14px);
+    transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: -4px 0 16px rgba(43, 33, 24, 0.08);
+    background-image: linear-gradient(to right, rgba(43, 33, 24, 0.08), rgba(43, 33, 24, 0.02) 8px, transparent 18px);
+  }
+
+  /* Sidebar header: matches topbar height (56px) for seamless horizontal alignment */
+  .sidebar-header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    border-bottom: 1px solid rgba(43, 33, 24, 0.18);
+    background-color: var(--color-parchment);
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
 
   /* ─── Top Bar: notebook cover strip ────────────────────────────────────── */
@@ -719,13 +735,11 @@
     display: none;
   }
 
-  /* Shift map and collection bar to the left of the 420px spread */
-  .map-wrapper {
-    right: 420px !important;
-  }
-
-  .collection-filter-bar {
-    right: 420px;
+  /* Smooth layout transitions when opening/closing notebook spread */
+  .map-wrapper,
+  .collection-filter-bar,
+  .topbar {
+    transition: right 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
 

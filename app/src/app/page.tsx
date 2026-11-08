@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect } from 'react'
 import {
-  Globe, Plus, Search, Download, LogOut, X, List, ChevronUp, Sparkles, Bookmark
+  Globe, Plus, Search, Download, LogOut, X, List, ChevronUp, Sparkles, Bookmark, BookOpen, ChevronRight, ChevronLeft
 } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { getPlaces, createPlace, updatePlace, deletePlace } from '@/lib/actions/places'
@@ -240,6 +240,7 @@ export default function SecondMindMapApp() {
   const [pendingMarker, setPendingMarker] = useState<{ lat: number; lng: number } | null>(null)
   const [panelMode, setPanelMode] = useState<PanelMode>('closed')
   const [sheetHeight, setSheetHeight] = useState<SheetHeight>('half')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isPickingLocation, setIsPickingLocation] = useState(false)
   const [showJsonModal, setShowJsonModal] = useState(false)
   const [markdownModal, setMarkdownModal] = useState<{ content: string; title: string } | null>(null)
@@ -275,6 +276,7 @@ export default function SecondMindMapApp() {
     setSelectedPlace(null)
     setPanelMode('form')
     setSheetHeight('full')
+    setIsSidebarOpen(true)
   }, [isPickingLocation, panelMode])
 
   const handleSelectPlace = useCallback((place: Place) => {
@@ -282,6 +284,7 @@ export default function SecondMindMapApp() {
     setPanelMode('detail')
     setSheetHeight('half')
     setPendingMarker(null)
+    setIsSidebarOpen(true)
   }, [])
 
   // ─── CRUD Places ─────────────────────────────────────────────────────────
@@ -696,7 +699,12 @@ export default function SecondMindMapApp() {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-base)' }}>
       {/* ── Top Bar (Notebook cover strip across the top) ────────────────── */}
-      <header className="topbar glass-strong">
+      <header
+        className="topbar glass-strong"
+        style={{
+          right: isSidebarOpen ? 420 : 0,
+        }}
+      >
         {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div
@@ -756,6 +764,17 @@ export default function SecondMindMapApp() {
 
         {/* Actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Toggle sidebar button in topbar */}
+          <button
+            className="btn btn-ghost btn-sm hidden md:flex items-center gap-1.5 text-xs"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            title={isSidebarOpen ? 'Ocultar diario' : 'Ver diario'}
+            aria-pressed={isSidebarOpen}
+          >
+            <BookOpen size={14} style={{ color: 'var(--color-oxblood)' }} />
+            <span>{isSidebarOpen ? 'Ocultar diario' : 'Ver diario'}</span>
+          </button>
+
           <button
             className="btn btn-ghost btn-sm flex items-center gap-1 text-xs"
             onClick={() => setShowCollectionModal(true)}
@@ -780,6 +799,7 @@ export default function SecondMindMapApp() {
               setSheetHeight('full')
               setEditingPlace(null)
               setPendingMarker(null)
+              setIsSidebarOpen(true)
             }}
             title="Añadir lugar"
           >
@@ -803,6 +823,7 @@ export default function SecondMindMapApp() {
         onToggleCollectionFilter={handleToggleCollectionFilter}
         onClearFilters={handleClearCollectionFilters}
         onOpenManageModal={() => setShowCollectionModal(true)}
+        style={{ right: isSidebarOpen ? 420 : 0 }}
       />
 
       {/* ── Map ─────────────────────────────────────────────────────────── */}
@@ -812,7 +833,8 @@ export default function SecondMindMapApp() {
           position: 'absolute',
           inset: 0,
           top: 100,
-          transition: 'right 0.3s ease',
+          right: isSidebarOpen ? 420 : 0,
+          transition: 'right 0.26s ease',
         }}
       >
         <MapView
@@ -855,23 +877,36 @@ export default function SecondMindMapApp() {
         </aside>
       )}
 
-      {/* ── Desktop Sidebar ─────────────────────────────────────────────── */}
+      {/* ── Desktop Sidebar (Field Diary Spread) ─────────────────────────── */}
       <aside
-        className="sidebar glass"
+        className="sidebar"
         style={{
-          top: 56,
-          transform: isPickingLocation ? 'translateX(100%)' : 'none',
+          transform: isPickingLocation || !isSidebarOpen ? 'translateX(100%)' : 'translateX(0)',
         }}
       >
-        <div className="p-4">
-          {/* Sidebar list header */}
-          {panelMode !== 'form' && panelMode !== 'detail' && (
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                Índice ({filteredPlaces.length})
-              </h2>
+        {/* Sticky Sidebar Header: aligns with topbar (height 56px) */}
+        <div className="sidebar-header">
+          <div className="flex items-center gap-2 min-w-0">
+            <Bookmark size={15} style={{ color: 'var(--color-oxblood)' }} />
+            <h2
+              className="font-normal text-base italic truncate"
+              style={{
+                fontFamily: 'var(--font-display-stack)',
+                color: 'var(--color-ink)',
+              }}
+            >
+              {panelMode === 'form'
+                ? (editingPlace ? 'Editar entrada' : 'Nueva entrada')
+                : panelMode === 'detail' && selectedPlace
+                ? selectedPlace.name
+                : `Índice (${filteredPlaces.length})`}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {panelMode !== 'form' && panelMode !== 'detail' && (
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm flex items-center gap-1 text-xs"
                 onClick={() => {
                   setPanelMode('form')
                   setEditingPlace(null)
@@ -879,13 +914,61 @@ export default function SecondMindMapApp() {
                 }}
               >
                 <Plus size={13} />
-                Nueva entrada
+                <span>Nueva entrada</span>
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Collapse/Hide panel button */}
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(false)}
+              className="btn-icon btn-ghost ml-1"
+              style={{ color: 'var(--color-ink-faded)' }}
+              title="Ocultar cuaderno"
+              aria-label="Ocultar cuaderno"
+            >
+              <ChevronRight size={17} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4">
           <div key={panelMode} className="page-turn">{renderPanel()}</div>
         </div>
       </aside>
+
+      {/* Floating Bookmark Tab when sidebar is closed */}
+      {!isSidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(true)}
+          className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-1.5 py-3.5 px-2.5 rounded-l-md border-l border-y transition-all hover:pr-4 cursor-pointer group shadow-xl"
+          style={{
+            backgroundColor: '#e8d9b5',
+            borderColor: 'var(--border-bright)',
+            color: 'var(--color-ink)',
+            boxShadow: '-4px 0 16px rgba(43, 33, 24, 0.18)',
+          }}
+          title="Abrir diario de viaje"
+          aria-label="Abrir diario de viaje"
+        >
+          <ChevronLeft
+            size={16}
+            className="group-hover:-translate-x-0.5 transition-transform"
+            style={{ color: 'var(--color-oxblood)' }}
+          />
+          <span
+            className="text-xs font-semibold tracking-wider uppercase [writing-mode:vertical-rl] rotate-180"
+            style={{
+              fontFamily: 'var(--font-body-stack)',
+              fontVariant: 'small-caps',
+              color: 'var(--color-ink)',
+            }}
+          >
+            Diario ({filteredPlaces.length})
+          </span>
+        </button>
+      )}
 
       {/* ── Mobile Bottom Sheet ──────────────────────────────────────────── */}
       <div
